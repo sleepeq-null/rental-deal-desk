@@ -1,0 +1,629 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Underwrite single-family and multifamily rentals: cash flow, cap rate, DSCR, IRR, BRRRR refi, max offer price, and sensitivity.">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Rental Deal Desk</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,500..800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: underwriting desk — sticky input ledger on the left, pro forma results scrolling on the right; stacks on phones */
+:root{
+  --bg:#ECF0EE; --surface:#FFFFFF; --sunk:#F5F8F6; --ink:#14202A; --muted:#5A6A71; --line:#D3DBD8;
+  --accent:#1D6A55; --accent-soft:#DCEDE6; --accent-ink:#FFFFFF; --brass:#A57720; --brass-soft:#F3E7CD;
+  --good:#1D7A4B; --good-soft:#DDF1E5; --warn:#A8730C; --warn-soft:#F7EBCF; --bad:#B0372D; --bad-soft:#F7DEDB;
+  --f-display:"Archivo","Arial Narrow",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,"Cascadia Mono",Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0E1417; --surface:#162024; --sunk:#11191C; --ink:#E4EBE9; --muted:#93A4A9; --line:#29363B;
+  --accent:#4DB292; --accent-soft:#18352C; --accent-ink:#06120E; --brass:#D9AA4C; --brass-soft:#3A2F17;
+  --good:#4CC488; --good-soft:#143326; --warn:#E3B34B; --warn-soft:#3A2E12; --bad:#EC7A6E; --bad-soft:#3D1D1A; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0E1417; --surface:#162024; --sunk:#11191C; --ink:#E4EBE9; --muted:#93A4A9; --line:#29363B;
+  --accent:#4DB292; --accent-soft:#18352C; --accent-ink:#06120E; --brass:#D9AA4C; --brass-soft:#3A2F17;
+  --good:#4CC488; --good-soft:#143326; --warn:#E3B34B; --warn-soft:#3A2E12; --bad:#EC7A6E; --bad-soft:#3D1D1A; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:14px;line-height:1.45}
+.num{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.wrap{max-width:1360px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 48px}
+
+header.top{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-end;justify-content:space-between;padding-bottom:18px;border-bottom:2px solid var(--ink);margin-bottom:20px}
+.brand h1{font-family:var(--f-display);font-stretch:78%;font-weight:800;font-size:clamp(30px,4.4vw,46px);line-height:.95;letter-spacing:-.01em;margin:0;text-transform:uppercase;text-wrap:balance}
+.brand p{margin:6px 0 0;color:var(--muted);max-width:60ch}
+.presets{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.presets .lbl{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-right:2px}
+button{font:inherit;cursor:pointer}
+.btn{border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:7px 12px;border-radius:6px;font-weight:500}
+.btn:hover{border-color:var(--accent);color:var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.primary:hover{filter:brightness(1.08);color:var(--accent-ink)}
+.btn:focus-visible,input:focus-visible,.seg label:has(input:focus-visible),.switch:has(input:focus-visible){outline:2px solid var(--accent);outline-offset:2px}
+
+.grid{display:grid;grid-template-columns:minmax(300px,380px) minmax(0,1fr);gap:24px;align-items:start}
+@media (max-width:900px){.grid{grid-template-columns:minmax(0,1fr)}}
+
+/* Input ledger */
+aside.ledger{background:var(--surface);border:1px solid var(--line);border-radius:10px;position:sticky;top:max(12px,env(safe-area-inset-top,0px));max-height:calc(100vh - 24px);overflow:auto}
+@media (max-width:900px){aside.ledger{position:static;max-height:none}}
+.example-note{margin:0;padding:10px 16px;background:var(--brass-soft);color:var(--ink);font-size:12.5px;border-bottom:1px solid var(--line)}
+.group{padding:14px 16px 16px;border-bottom:1px solid var(--line)}
+.group:last-child{border-bottom:0}
+.group h3{font-family:var(--f-display);font-stretch:85%;font-weight:700;font-size:13px;letter-spacing:.09em;text-transform:uppercase;margin:0 0 10px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.fields{display:grid;grid-template-columns:1fr 1fr;gap:10px 12px}
+.field{display:flex;flex-direction:column;gap:4px;min-width:0}
+.field.wide{grid-column:1/-1}
+.field .lbl{font-size:12px;color:var(--muted)}
+.inp{display:flex;align-items:center;border:1px solid var(--line);border-radius:6px;background:var(--sunk);overflow:hidden}
+.inp:focus-within{border-color:var(--accent)}
+.inp span{padding:0 8px;color:var(--muted);font-size:12px;white-space:nowrap}
+.inp input{flex:1;min-width:0;border:0;background:transparent;color:var(--ink);font-family:var(--f-mono);font-size:14px;padding:7px 8px;outline:none}
+.inp span + input{padding-left:0}
+.inp input:disabled{color:var(--muted)}
+.field.off{opacity:.45}
+.seg{display:flex;border:1px solid var(--line);border-radius:6px;overflow:hidden;grid-column:1/-1}
+.seg label{flex:1;text-align:center;padding:8px 6px;cursor:pointer;font-weight:500;font-size:13px;background:var(--sunk)}
+.seg label + label{border-left:1px solid var(--line)}
+.seg input{position:absolute;opacity:0;pointer-events:none}
+.seg label:has(input:checked){background:var(--accent);color:var(--accent-ink)}
+.switch{display:inline-flex;align-items:center;gap:8px;font-family:var(--f-body);font-size:12px;font-weight:500;letter-spacing:0;text-transform:none;color:var(--muted);cursor:pointer}
+.switch input{position:absolute;opacity:0;pointer-events:none}
+.switch i{width:32px;height:18px;border-radius:9px;background:var(--line);position:relative;transition:background .15s}
+.switch i::after{content:"";position:absolute;left:2px;top:2px;width:14px;height:14px;border-radius:50%;background:var(--surface);transition:transform .15s}
+.switch input:checked + i{background:var(--accent)}
+.switch input:checked + i::after{transform:translateX(14px)}
+.hint{grid-column:1/-1;font-size:11.5px;color:var(--muted);margin:0}
+
+/* Results */
+main.results{display:flex;flex-direction:column;gap:20px;min-width:0}
+.verdict{display:grid;grid-template-columns:auto minmax(0,1fr);gap:6px 20px;align-items:center;padding:18px 20px;border-radius:10px;border:1px solid var(--line);background:var(--surface);position:relative;overflow:hidden}
+.verdict::before{content:"";position:absolute;inset:0 auto 0 0;width:6px;background:var(--vc,var(--muted))}
+.verdict[data-v="good"]{--vc:var(--good)} .verdict[data-v="warn"]{--vc:var(--warn)} .verdict[data-v="bad"]{--vc:var(--bad)}
+.stamp{font-family:var(--f-display);font-stretch:75%;font-weight:800;text-transform:uppercase;font-size:clamp(28px,4vw,40px);line-height:1;color:var(--vc);padding-left:6px}
+.verdict .why{color:var(--ink);font-size:14px}
+.verdict .why b{font-weight:600}
+.verdict .offer{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:8px 18px;padding:10px 0 0 6px;margin-top:6px;border-top:1px dashed var(--line);font-size:13px;color:var(--muted)}
+.verdict .offer strong{color:var(--ink);font-family:var(--f-mono);font-weight:500}
+@media (max-width:560px){.verdict{grid-template-columns:minmax(0,1fr)}}
+
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+@media (max-width:1100px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.kpi{background:var(--surface);padding:14px 16px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.kpi .k{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.kpi .v{font-family:var(--f-mono);font-variant-numeric:tabular-nums;font-size:clamp(19px,2.2vw,25px);font-weight:500;line-height:1.2;overflow-wrap:anywhere}
+.kpi .s{font-size:12px;color:var(--muted)}
+.kpi .v.pos{color:var(--good)} .kpi .v.neg{color:var(--bad)}
+
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px 18px;min-width:0}
+.panel h2{font-family:var(--f-display);font-stretch:85%;font-weight:700;font-size:15px;letter-spacing:.07em;text-transform:uppercase;margin:0 0 4px}
+.panel .sub{color:var(--muted);font-size:12.5px;margin:0 0 12px}
+.two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px}
+@media (max-width:1100px){.two{grid-template-columns:minmax(0,1fr)}}
+
+.checks{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.checks li{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
+.checks li:last-child{border-bottom:0}
+.checks .rule{display:block;font-size:11.5px;color:var(--muted)}
+.checks .val{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.chip{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;padding:3px 8px;border-radius:999px;min-width:52px;text-align:center}
+.chip.pass{background:var(--good-soft);color:var(--good)} .chip.warn{background:var(--warn-soft);color:var(--warn)} .chip.fail{background:var(--bad-soft);color:var(--bad)}
+
+table{border-collapse:collapse;width:100%}
+.pf td{padding:5px 0;border-bottom:1px solid var(--line)}
+.pf td:last-child,.pf td:nth-child(2){text-align:right;font-family:var(--f-mono);font-variant-numeric:tabular-nums;white-space:nowrap;padding-left:12px}
+.pf td:nth-child(2){color:var(--muted);font-size:12px}
+.pf tr.sub td{color:var(--muted);padding-left:12px}
+.pf tr.sub td:first-child{padding-left:12px}
+.pf tr.total td{font-weight:600;border-bottom:2px solid var(--ink)}
+.pf tr.grand td{font-weight:600;border-bottom:0;font-size:15px}
+.neg{color:var(--bad)} .pos{color:var(--good)}
+
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.proj{min-width:760px;font-size:13px}
+.proj th{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:500;text-align:right;padding:6px 8px;border-bottom:2px solid var(--ink);white-space:nowrap}
+.proj td{text-align:right;padding:6px 8px;border-bottom:1px solid var(--line);font-family:var(--f-mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+.proj th:first-child,.proj td:first-child{text-align:left}
+.proj tr.refi td{background:var(--brass-soft)}
+
+.sens{min-width:480px;font-size:13px}
+.sens th{font-size:11px;color:var(--muted);font-weight:500;padding:6px;text-align:center;white-space:nowrap}
+.sens th.rowh{text-align:right}
+.sens td{text-align:center;padding:8px 6px;font-family:var(--f-mono);font-variant-numeric:tabular-nums;border:2px solid var(--surface);border-radius:4px}
+.sens td.p{background:var(--good-soft);color:var(--good)} .sens td.n{background:var(--bad-soft);color:var(--bad)}
+.sens td.base{outline:2px solid var(--ink);outline-offset:-2px;font-weight:600}
+.axis-note{font-size:11.5px;color:var(--muted);margin:8px 0 0}
+
+.chart svg{display:block;width:100%;height:auto}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:12px;color:var(--muted);margin-bottom:8px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:-1px}
+
+.brrrr{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+@media (max-width:700px){.brrrr{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.brrrr div{background:var(--brass-soft);border-radius:8px;padding:10px 12px;min-width:0}
+.brrrr .k{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.brrrr .v{font-family:var(--f-mono);font-size:18px;font-weight:500;overflow-wrap:anywhere}
+
+.save-row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.save-row .inp{flex:1;min-width:180px}
+.saved{min-width:640px;font-size:13px}
+.saved th{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:500;text-align:right;padding:6px 8px;border-bottom:1px solid var(--line)}
+.saved td{text-align:right;padding:7px 8px;border-bottom:1px solid var(--line);font-family:var(--f-mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+.saved th:first-child,.saved td:first-child{text-align:left;font-family:var(--f-body)}
+.saved td .btn{padding:3px 8px;font-size:12px;font-family:var(--f-body)}
+.empty{color:var(--muted);font-size:13px;margin:0}
+.foot{color:var(--muted);font-size:12px;margin:4px 0 0;max-width:80ch}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <h1>Rental Deal Desk</h1>
+      <p>Underwrite a single-family or multifamily rental the way an operator would: year-one pro forma, the ratios lenders check, a full hold-period return, and the most you should pay.</p>
+    </div>
+    <div class="presets">
+      <span class="lbl">Load example</span>
+      <button class="btn" type="button" data-preset="sfr">Single-family</button>
+      <button class="btn" type="button" data-preset="quad">Fourplex</button>
+      <button class="btn" type="button" data-preset="brrrr">BRRRR</button>
+    </div>
+  </header>
+
+  <div class="grid">
+    <aside class="ledger" aria-label="Deal inputs">
+      <p class="example-note" id="exampleNote">These are example numbers. Replace them with your deal; results update as you type.</p>
+      <form id="form" autocomplete="off"></form>
+    </aside>
+
+    <main class="results">
+      <section class="verdict" id="verdict" data-v="warn" aria-live="polite">
+        <div class="stamp" id="stamp">—</div>
+        <div class="why" id="why"></div>
+        <div class="offer" id="offer"></div>
+      </section>
+
+      <section class="kpis" id="kpis"></section>
+
+      <section class="panel" id="brrrrPanel" hidden>
+        <h2>Refinance (BRRRR)</h2>
+        <p class="sub" id="brrrrSub"></p>
+        <div class="brrrr" id="brrrrGrid"></div>
+      </section>
+
+      <div class="two">
+        <section class="panel">
+          <h2>Operator checklist</h2>
+          <p class="sub">The thresholds I hold every rental to before I write an offer.</p>
+          <ul class="checks" id="checks"></ul>
+        </section>
+        <section class="panel">
+          <h2>Year-one pro forma</h2>
+          <p class="sub">Annual figures, first 12 months of ownership.</p>
+          <table class="pf" id="pf"></table>
+        </section>
+      </div>
+
+      <section class="panel chart">
+        <h2>Wealth built over the hold</h2>
+        <p class="sub">Equity in the property plus cash flow collected, by year, against the cash you put in.</p>
+        <div class="legend">
+          <span><i style="background:var(--accent)"></i>Equity (value − loan)</span>
+          <span><i style="background:var(--brass)"></i>Cumulative cash flow + refi cash-out</span>
+          <span><i style="background:transparent;border:1.5px dashed var(--ink)"></i>Cash invested</span>
+        </div>
+        <div id="chart"></div>
+      </section>
+
+      <section class="panel">
+        <h2>Sensitivity: monthly cash flow</h2>
+        <p class="sub">What year-one cash flow looks like if you negotiate the price or misjudge the rent. Your current case is outlined.</p>
+        <div class="scroll"><table class="sens" id="sens"></table></div>
+        <p class="axis-note">Columns: purchase price. Rows: rent per unit.</p>
+      </section>
+
+      <section class="panel">
+        <h2>Hold-period projection</h2>
+        <p class="sub" id="projSub"></p>
+        <div class="scroll"><table class="proj" id="proj"></table></div>
+      </section>
+
+      <section class="panel">
+        <h2>Saved deals</h2>
+        <p class="sub">Save the current inputs to compare against other properties. Saved in this browser only.</p>
+        <div class="save-row">
+          <label class="inp" for="dealName"><span>Name</span><input id="dealName" type="text" placeholder="e.g. 412 Oak St fourplex"></label>
+          <button class="btn primary" type="button" id="saveBtn">Save deal</button>
+        </div>
+        <div class="scroll" id="savedWrap"></div>
+      </section>
+
+      <p class="foot">Assumptions: the property is rented from month one (rehab time isn't modeled), percentage-based expenses are taken on rent collected after vacancy, property value starts at the after-repair value and grows monthly at the appreciation rate, and the sale happens at the end of the final year net of selling costs. Taxes on income and sale are not included. This is an underwriting aid, not financial advice.</p>
+    </main>
+  </div>
+</div>
+
+<script>
+(function(){
+const PRESETS = {
+  sfr:{propType:'sfr',units:1,price:235000,closingPct:3,rehab:20000,arv:285000,allCash:false,downPct:25,rate:7,term:30,points:0,
+       rent:2250,otherInc:0,vacancy:6,taxes:3000,insurance:1400,hoa:0,utilities:0,maint:6,capex:6,mgmt:8,
+       appr:3,rentGrowth:3,expGrowth:2.5,hold:7,sellPct:7,brrrr:false,refiMonth:6,refiLtv:75,refiRate:7.25,refiCostPct:2,targetCoc:8},
+  quad:{propType:'multi',units:4,price:560000,closingPct:3,rehab:30000,arv:610000,allCash:false,downPct:25,rate:6.875,term:30,points:0.5,
+       rent:1475,otherInc:120,vacancy:7,taxes:8400,insurance:4200,hoa:0,utilities:420,maint:7,capex:7,mgmt:8,
+       appr:3,rentGrowth:3,expGrowth:2.5,hold:10,sellPct:6,brrrr:false,refiMonth:6,refiLtv:75,refiRate:7.25,refiCostPct:2,targetCoc:8},
+  brrrr:{propType:'sfr',units:1,price:150000,closingPct:3,rehab:45000,arv:265000,allCash:false,downPct:20,rate:10.5,term:30,points:2,
+       rent:2450,otherInc:0,vacancy:6,taxes:2400,insurance:1300,hoa:0,utilities:0,maint:6,capex:6,mgmt:8,
+       appr:3,rentGrowth:3,expGrowth:2.5,hold:7,sellPct:7,brrrr:true,refiMonth:6,refiLtv:75,refiRate:7.25,refiCostPct:2.5,targetCoc:10}
+};
+
+const GROUPS = [
+  {t:'Property', f:[
+    {k:'propType', type:'seg', opts:[['sfr','Single-family'],['multi','Multifamily']]},
+    {k:'units', l:'Units', suf:'doors', show:s=>s.propType==='multi'},
+  ]},
+  {t:'Purchase', f:[
+    {k:'price', l:'Purchase price', pre:'$'},
+    {k:'closingPct', l:'Closing costs', suf:'% of price'},
+    {k:'rehab', l:'Rehab budget', pre:'$'},
+    {k:'arv', l:'After-repair value', pre:'$'},
+  ]},
+  {t:'Financing', toggle:{k:'allCash', l:'All cash'}, f:[
+    {k:'downPct', l:'Down payment', suf:'%', off:s=>s.allCash},
+    {k:'rate', l:'Interest rate', suf:'%', off:s=>s.allCash},
+    {k:'term', l:'Loan term', suf:'yrs', off:s=>s.allCash},
+    {k:'points', l:'Points', suf:'% of loan', off:s=>s.allCash},
+  ]},
+  {t:'Income', f:[
+    {k:'rent', l:s=>s.propType==='multi'?'Rent per unit':'Monthly rent', pre:'$', suf:'/mo'},
+    {k:'otherInc', l:'Other income', pre:'$', suf:'/mo'},
+    {k:'vacancy', l:'Vacancy & credit loss', suf:'%', wide:true},
+  ]},
+  {t:'Operating expenses', f:[
+    {k:'taxes', l:'Property taxes', pre:'$', suf:'/yr'},
+    {k:'insurance', l:'Insurance', pre:'$', suf:'/yr'},
+    {k:'hoa', l:'HOA', pre:'$', suf:'/mo'},
+    {k:'utilities', l:'Owner-paid utilities', pre:'$', suf:'/mo'},
+    {k:'maint', l:'Repairs & maintenance', suf:'%'},
+    {k:'capex', l:'CapEx reserve', suf:'%'},
+    {k:'mgmt', l:'Property management', suf:'%', wide:true},
+    {hint:'Percentages are of rent collected. Self-managing? Keep 8–10% anyway; your time costs money.'},
+  ]},
+  {t:'Growth & exit', f:[
+    {k:'appr', l:'Appreciation', suf:'%/yr'},
+    {k:'rentGrowth', l:'Rent growth', suf:'%/yr'},
+    {k:'expGrowth', l:'Expense growth', suf:'%/yr'},
+    {k:'hold', l:'Hold period', suf:'yrs'},
+    {k:'sellPct', l:'Selling costs', suf:'% of sale', wide:true},
+  ]},
+  {t:'Refinance (BRRRR)', toggle:{k:'brrrr', l:'Model a refi'}, f:[
+    {k:'refiMonth', l:'Refi after', suf:'months', show:s=>s.brrrr},
+    {k:'refiLtv', l:'Loan-to-value', suf:'%', show:s=>s.brrrr},
+    {k:'refiRate', l:'New rate (30-yr)', suf:'%', show:s=>s.brrrr},
+    {k:'refiCostPct', l:'Refi costs', suf:'% of loan', show:s=>s.brrrr},
+    {hint:'Pulls cash out against the appreciated ARV, pays off the first loan, and resets to a 30-year mortgage.', show:s=>s.brrrr},
+  ]},
+  {t:'Your target', f:[
+    {k:'targetCoc', l:'Target cash-on-cash', suf:'%', wide:true},
+    {hint:'Used to work out your maximum offer price. With a refi modeled, the max offer uses the 70% rule instead.'},
+  ]},
+];
+
+const STORE_DRAFT='deal-desk:draft:v1', STORE_SAVED='deal-desk:saved:v1';
+const store = {
+  get(k){try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}},
+  set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
+};
+
+let state = Object.assign({}, PRESETS.sfr, store.get(STORE_DRAFT)||{});
+let isExample = !store.get(STORE_DRAFT);
+
+/* ---------- form ---------- */
+const form = document.getElementById('form');
+function labelOf(f){return typeof f.l==='function'?f.l(state):f.l}
+function buildForm(){
+  form.innerHTML = GROUPS.map((g,gi)=>{
+    const tog = g.toggle ? `<label class="switch" for="f-${g.toggle.k}"><input type="checkbox" id="f-${g.toggle.k}" data-k="${g.toggle.k}"><i></i>${g.toggle.l}</label>` : '';
+    const fields = g.f.map((f,fi)=>{
+      if(f.hint) return `<p class="hint" data-g="${gi}" data-f="${fi}">${f.hint}</p>`;
+      if(f.type==='seg') return `<div class="seg" role="radiogroup" aria-label="Property type">${f.opts.map(([v,l])=>`<label><input type="radio" name="${f.k}" id="f-${f.k}-${v}" value="${v}" data-k="${f.k}">${l}</label>`).join('')}</div>`;
+      return `<label class="field${f.wide?' wide':''}" for="f-${f.k}" data-g="${gi}" data-f="${fi}"><span class="lbl">${labelOf(f)}</span><span class="inp">${f.pre?`<span>${f.pre}</span>`:''}<input id="f-${f.k}" type="number" step="any" inputmode="decimal" data-k="${f.k}">${f.suf?`<span>${f.suf}</span>`:''}</span></label>`;
+    }).join('');
+    return `<section class="group"><h3>${g.t}${tog}</h3><div class="fields">${fields}</div></section>`;
+  }).join('');
+}
+function fillForm(){
+  form.querySelectorAll('[data-k]').forEach(el=>{
+    const k=el.dataset.k;
+    if(el.type==='radio') el.checked = state[k]===el.value;
+    else if(el.type==='checkbox') el.checked = !!state[k];
+    else if(document.activeElement!==el) el.value = state[k];
+  });
+  syncVisibility();
+}
+function syncVisibility(){
+  form.querySelectorAll('[data-g]').forEach(el=>{
+    const f = GROUPS[+el.dataset.g].f[+el.dataset.f];
+    el.hidden = f.show ? !f.show(state) : false;
+    if(f.off){const off=f.off(state); el.classList.toggle('off',off); el.querySelector('input').disabled=off;}
+    if(typeof f.l==='function') el.querySelector('.lbl').textContent = labelOf(f);
+  });
+}
+form.addEventListener('input', e=>{
+  const el=e.target, k=el.dataset.k; if(!k) return;
+  if(el.type==='radio') state[k]=el.value;
+  else if(el.type==='checkbox') state[k]=el.checked;
+  else { const v=parseFloat(el.value); state[k]=isFinite(v)?v:0; }
+  if(isExample){isExample=false; document.getElementById('exampleNote').hidden=true;}
+  store.set(STORE_DRAFT,state);
+  syncVisibility(); render();
+});
+form.addEventListener('submit', e=>e.preventDefault());
+document.querySelectorAll('[data-preset]').forEach(b=>b.addEventListener('click',()=>{
+  state = Object.assign({}, PRESETS[b.dataset.preset]);
+  isExample = true; document.getElementById('exampleNote').hidden=false;
+  try{localStorage.removeItem(STORE_DRAFT)}catch(e){}
+  fillForm(); render();
+}));
+
+/* ---------- math ---------- */
+function pmt(annualRate, n, pv){
+  if(pv<=0||n<=0) return 0;
+  const r=annualRate/1200; if(r===0) return pv/n;
+  return pv*r/(1-Math.pow(1+r,-n));
+}
+function irrMonthly(flows){
+  const npv=r=>{let a=0,d=1;for(let i=0;i<flows.length;i++){a+=flows[i]/d;d*=(1+r);}return a};
+  let lo=-0.5, hi=0.5, flo=npv(lo), fhi=npv(hi);
+  if(!isFinite(flo)||!isFinite(fhi)||flo*fhi>0) return null;
+  for(let i=0;i<200;i++){const mid=(lo+hi)/2, fm=npv(mid); if(flo*fm<=0){hi=mid;}else{lo=mid;flo=fm;} if(hi-lo<1e-10)break;}
+  return Math.pow(1+(lo+hi)/2,12)-1;
+}
+function analyze(s){
+  const units = s.propType==='sfr'?1:Math.max(1,Math.round(s.units)||1);
+  const price=Math.max(0,s.price), closing=price*s.closingPct/100;
+  const loan0 = s.allCash?0:Math.max(0,price*(1-s.downPct/100));
+  const down = price-loan0, pointsCost=loan0*s.points/100;
+  const cashIn = down+closing+pointsCost+s.rehab;
+  let pay = s.allCash?0:pmt(s.rate, Math.max(1,s.term)*12, loan0);
+  const pay0 = pay;
+  let bal=loan0, r=s.rate/1200;
+  const value0 = s.arv>0?s.arv:price;
+  const hold = Math.min(40,Math.max(1,Math.round(s.hold)||1)), months=hold*12;
+  const flows=[-cashIn], years=[];
+  let refi=null, cum=0, y=null, pctAll=(s.maint+s.capex+s.mgmt)/100;
+  for(let m=1;m<=months;m++){
+    const yi=Math.floor((m-1)/12);
+    if((m-1)%12===0) y={year:yi+1,gsr:0,vac:0,egi:0,taxes:0,ins:0,hoa:0,util:0,maint:0,capex:0,mgmt:0,opex:0,noi:0,ds:0,interest:0,principal:0,cf:0,refiCash:0};
+    const rf=Math.pow(1+s.rentGrowth/100,yi), ef=Math.pow(1+s.expGrowth/100,yi);
+    const gsr=(units*s.rent+s.otherInc)*rf, vac=gsr*s.vacancy/100, egi=gsr-vac;
+    const taxes=s.taxes/12*ef, ins=s.insurance/12*ef, hoa=s.hoa*ef, util=s.utilities*ef;
+    const maint=egi*s.maint/100, capex=egi*s.capex/100, mgmt=egi*s.mgmt/100;
+    const opex=taxes+ins+hoa+util+maint+capex+mgmt, noi=egi-opex;
+    let interest=0, principal=0, ds=0;
+    if(bal>0.005){interest=bal*r; ds=Math.min(pay,bal+interest); principal=ds-interest; bal-=principal;}
+    const cf=noi-ds; let flow=cf;
+    const value=value0*Math.pow(1+s.appr/100,m/12);
+    if(s.brrrr && m===Math.max(1,Math.round(s.refiMonth))){
+      const newLoan=value*s.refiLtv/100, cost=newLoan*s.refiCostPct/100, cashOut=newLoan-bal-cost;
+      refi={month:m,value,newLoan,cost,payoff:bal,cashOut};
+      bal=newLoan; r=s.refiRate/1200; pay=pmt(s.refiRate,360,newLoan);
+      refi.newPay=pay; refi.noi=noi;
+      flow+=cashOut; y.refiCash+=cashOut;
+    }
+    let saleNet=0;
+    if(m===months){saleNet=value*(1-s.sellPct/100)-bal; flow+=saleNet;}
+    flows.push(flow);
+    Object.entries({gsr,vac,egi,taxes,ins,hoa,util,maint,capex,mgmt,opex,noi,ds,interest,principal,cf}).forEach(([k,v])=>y[k]+=v);
+    cum+=cf;
+    if(m%12===0){y.value=value;y.bal=bal;y.equity=value-bal;y.cum=cum;y.saleNet=saleNet;years.push(y);}
+  }
+  const y1=years[0];
+  const totalReturned = flows.slice(1).reduce((a,b)=>a+b,0);
+  const irr=irrMonthly(flows);
+  const out = {
+    units, price, closing, loan0, down, pointsCost, cashIn, pay0, value0, hold, years, y1, refi, flows,
+    monthlyCF:y1.cf/12, perDoor:y1.cf/12/units,
+    coc: cashIn>0? y1.cf/cashIn : Infinity,
+    cap: price>0? y1.noi/price : 0,
+    capAllIn: (price+closing+s.rehab)>0? y1.noi/(price+closing+s.rehab):0,
+    dscr: y1.ds>0? y1.noi/y1.ds : Infinity,
+    grm: y1.gsr>0? price/y1.gsr : 0,
+    onePct: (price+s.rehab)>0? (units*s.rent+s.otherInc)/(price+s.rehab) : 0,
+    breakEven: y1.gsr>0? (y1.opex+y1.ds)/y1.gsr : 0,
+    irr, totalProfit: totalReturned-cashIn,
+    em: cashIn>0? totalReturned/cashIn : Infinity,
+    saleNet: years[years.length-1].saleNet,
+  };
+  if(refi){
+    refi.cashLeft = cashIn-refi.cashOut;
+    refi.monthlyCF = refi.noi-refi.newPay;
+    refi.coc = refi.cashLeft>0 ? refi.monthlyCF*12/refi.cashLeft : Infinity;
+  }
+  return out;
+}
+function maxOffer(s, target){
+  const t=target/100, f=p=>analyze(Object.assign({},s,{price:p})).coc;
+  let lo=1000, hi=Math.max(s.price*3,50000);
+  if(f(lo)<t) return null;
+  if(f(hi)>=t) return hi;
+  for(let i=0;i<50;i++){const mid=(lo+hi)/2; if(f(mid)>=t) lo=mid; else hi=mid;}
+  return Math.floor(lo/500)*500;
+}
+
+/* ---------- formatting ---------- */
+const $ = n => (n<0?'−$':'$')+Math.abs(Math.round(n)).toLocaleString('en-US');
+const $k = n => {const a=Math.abs(n), sg=n<0?'−':''; return a>=1e6? sg+'$'+(a/1e6).toFixed(a>=1e7?1:2)+'M' : a>=1e3? sg+'$'+Math.round(a/1e3)+'k' : sg+'$'+Math.round(a)};
+const pct = (n,d=1) => !isFinite(n)? '∞' : (n<0?'−':'')+Math.abs(n*100).toFixed(d)+'%';
+const x2 = n => !isFinite(n)? 'No debt' : n.toFixed(2)+'×';
+const sgn = n => n>=0?'pos':'neg';
+
+/* ---------- render ---------- */
+function grade(v, pass, warn, higherBetter=true){
+  if(higherBetter) return v>=pass?'pass':v>=warn?'warn':'fail';
+  return v<=pass?'pass':v<=warn?'warn':'fail';
+}
+function render(){
+  const s=state, a=analyze(s);
+  const checks=[
+    {n:'Cash flow per door', rule:'$200+/mo strong, $100 minimum', val:$(a.perDoor)+'/mo', st:grade(a.perDoor,200,100)},
+    {n:'Cash-on-cash return', rule:'10%+ strong, 6% minimum', val:pct(a.coc), st:grade(a.coc,.10,.06)},
+    {n:'Cap rate', rule:'7%+ strong, 5.5% minimum', val:pct(a.cap,2), st:grade(a.cap,.07,.055)},
+    {n:'Debt service coverage', rule:'1.25× is what lenders want', val:x2(a.dscr), st:grade(a.dscr,1.25,1.10)},
+    {n:'1% rule', rule:'Monthly rent ÷ all-in price', val:pct(a.onePct,2), st:grade(a.onePct,.01,.0075)},
+    {n:'Break-even occupancy', rule:'Under 80% leaves room for bad months', val:pct(a.breakEven), st:grade(a.breakEven,.80,.90,false)},
+    {n:`IRR over ${a.hold} years`, rule:'15%+ strong, 10% minimum', val:a.irr==null?'n/a':pct(a.irr), st:a.irr==null?'fail':grade(a.irr,.15,.10)},
+  ];
+  if(a.refi) checks.push({n:'Cash left in after refi', rule:'Under 25% of what you put in', val:$(a.refi.cashLeft), st:grade(a.cashIn>0?a.refi.cashLeft/a.cashIn:0,.25,.5,false)});
+
+  // verdict
+  const score=checks.reduce((t,c)=>t+(c.st==='pass'?2:c.st==='warn'?1:0),0)/(checks.length*2);
+  const fails=checks.filter(c=>c.st==='fail').map(c=>c.n.toLowerCase());
+  let v, word, why;
+  const refiCF = a.refi? a.refi.monthlyCF : a.monthlyCF;
+  if(a.monthlyCF<0 && refiCF<0){v='bad';word='Pass on it';why=`It loses <b>${$(-a.monthlyCF)}</b> a month in year one. I don't buy negative cash flow and hope appreciation bails me out.`;}
+  else if(score>=.75 && fails.length===0){v='good';word='Strong deal';why=`Cash flows <b>${$(a.monthlyCF)}/mo</b> and clears the checklist. Verify rents and the rehab bid, then move fast.`;}
+  else if(score>=.5){v='warn';word='Workable';why=`Cash flows <b>${$(a.monthlyCF)}/mo</b>${fails.length?`, but it's weak on ${fails.join(', ')}`:', with a few thin spots'}. Negotiate the price down before committing.`;}
+  else {v='bad';word='Pass on it';why=`Only <b>${$(a.monthlyCF)}/mo</b> of cash flow${fails.length?` and it misses on ${fails.join(', ')}`:''}. The numbers don't support this price.`;}
+  const vEl=document.getElementById('verdict'); vEl.dataset.v=v;
+  document.getElementById('stamp').textContent=word;
+  document.getElementById('why').innerHTML=why;
+  const mo=s.brrrr? Math.floor((s.arv*0.70-s.rehab)/500)*500 : maxOffer(s,s.targetCoc);
+  document.getElementById('offer').innerHTML =
+    `<span>${s.brrrr?'Max offer by the 70% rule (70% of ARV − rehab)':`Max offer for ${s.targetCoc}% cash-on-cash`}: <strong>${mo==null?'not reachable':$(mo)}</strong>${mo!=null?` (${mo>=s.price?'+':'−'}${$(Math.abs(mo-s.price)).replace('−','')} vs. asking)`:''}</span>`+
+    `<span>Total cash needed: <strong>${$(a.cashIn)}</strong></span>`+
+    `<span>Loan: <strong>${$(a.loan0)}</strong> at <strong>${$(a.pay0)}/mo</strong></span>`;
+
+  // kpis
+  const k=(label,val,sub,cls='')=>`<div class="kpi"><span class="k">${label}</span><span class="v ${cls}">${val}</span><span class="s">${sub}</span></div>`;
+  document.getElementById('kpis').innerHTML=[
+    k('Monthly cash flow',$(a.monthlyCF),a.units>1?`${$(a.perDoor)} per door`:'Year one, after debt',sgn(a.monthlyCF)),
+    k('Cash-on-cash',pct(a.coc),'Year-one cash flow ÷ cash in',sgn(a.coc)),
+    k('Cap rate',pct(a.cap,2),`${pct(a.capAllIn,2)} on all-in cost`),
+    k('DSCR',x2(a.dscr),'NOI ÷ debt service'),
+    k(`IRR (${a.hold}-yr hold)`,a.irr==null?'n/a':pct(a.irr),'Includes sale and refi',a.irr==null?'':sgn(a.irr)),
+    k('Equity multiple',isFinite(a.em)?a.em.toFixed(2)+'×':'∞','Cash back ÷ cash in'),
+    k('Total profit',$(a.totalProfit),`Over ${a.hold} years, before tax`,sgn(a.totalProfit)),
+    k('Net from sale',$(a.saleNet),`Year ${a.hold}, after payoff & costs`),
+  ].join('');
+
+  // brrrr
+  const bp=document.getElementById('brrrrPanel'); bp.hidden=!a.refi;
+  if(a.refi){
+    const R=a.refi;
+    document.getElementById('brrrrSub').textContent=`Month ${R.month}: appraised at ${$(R.value)}, new ${s.refiLtv}% loan of ${$(R.newLoan)} pays off ${$(R.payoff)}.`;
+    document.getElementById('brrrrGrid').innerHTML=[
+      ['Cash out at refi',$(R.cashOut)],['Cash left in deal',R.cashLeft<=0?'$0 (all out)':$(R.cashLeft)],
+      ['Cash flow after refi',$(R.monthlyCF)+'/mo'],['CoC after refi',R.cashLeft<=0?'Infinite':pct(R.coc)]
+    ].map(([kk,vv])=>`<div><span class="k">${kk}</span><br><span class="v">${vv}</span></div>`).join('');
+  }
+
+  // checks
+  document.getElementById('checks').innerHTML=checks.map(c=>`<li><span>${c.n}<span class="rule">${c.rule}</span></span><span class="val">${c.val}</span><span class="chip ${c.st}">${c.st}</span></li>`).join('');
+
+  // pro forma
+  const y=a.y1, pr=(n)=>y.egi>0?pct(n/y.egi,0):'';
+  const row=(l,v,cls='',note='')=>`<tr class="${cls}"><td>${l}</td><td>${note}</td><td class="${v<0?'neg':''}">${$(v)}</td></tr>`;
+  let pf = row('Gross scheduled rent',y.gsr)+row('Vacancy & credit loss',-y.vac,'sub',pct(s.vacancy/100,0))+row('Effective gross income',y.egi,'total');
+  [['Property taxes',y.taxes],['Insurance',y.ins],['HOA',y.hoa],['Utilities',y.util],['Repairs & maintenance',y.maint],['CapEx reserve',y.capex],['Management',y.mgmt]]
+    .forEach(([l,v])=>{if(v>0) pf+=row(l,-v,'sub',pr(v));});
+  pf += row('Net operating income',y.noi,'total',`${pct(y.opex/Math.max(1,y.egi),0)} expense ratio`);
+  pf += row('Debt service',-y.ds,'sub', s.allCash?'all cash':`${s.rate}% · ${s.term} yr`);
+  if(y.refiCash) pf += row('Refi cash-out',y.refiCash,'sub','one-time');
+  pf += `<tr class="grand"><td>Cash flow</td><td></td><td class="${sgn(y.cf)}">${$(y.cf)}</td></tr>`;
+  document.getElementById('pf').innerHTML=pf;
+
+  renderChart(a);
+  renderSens(s,a);
+
+  // projection
+  document.getElementById('projSub').textContent=`Rent grows ${s.rentGrowth}%/yr, expenses ${s.expGrowth}%/yr, value ${s.appr}%/yr. Sold at the end of year ${a.hold}.`;
+  const head=['Year','Rent collected','NOI','Debt service','Cash flow','CoC','Cum. cash flow','Value','Loan balance','Equity'];
+  document.getElementById('proj').innerHTML=`<thead><tr>${head.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>`+
+    a.years.map(r=>`<tr class="${r.refiCash?'refi':''}"><td>${r.year}${r.refiCash?' · refi':''}</td><td>${$(r.egi)}</td><td>${$(r.noi)}</td><td>${$(r.ds)}</td><td class="${sgn(r.cf)}">${$(r.cf)}</td><td>${a.cashIn>0?pct(r.cf/a.cashIn):'∞'}</td><td>${$(r.cum)}</td><td>${$(r.value)}</td><td>${$(r.bal)}</td><td>${$(r.equity)}</td></tr>`).join('')+'</tbody>';
+
+  window.__lastAnalysis={a,verdict:word};
+}
+
+function renderChart(a){
+  const W=680,H=260,L=56,R=12,T=14,B=30, iw=W-L-R, ih=H-T-B;
+  let refiCum=0;
+  const data=a.years.map(y=>{refiCum+=y.refiCash; return {eq:y.equity, cf:y.cum+refiCum, year:y.year}});
+  const top=Math.max(a.cashIn, ...data.map(d=>d.eq+Math.max(0,d.cf)));
+  const bot=Math.min(0, ...data.map(d=>Math.min(0,d.cf)+Math.min(0,d.eq)));
+  // nice ticks
+  const span=top-bot||1, raw=span/4, mag=Math.pow(10,Math.floor(Math.log10(raw))), step=[1,2,2.5,5,10].map(m=>m*mag).find(st=>st>=raw);
+  const y0=Math.floor(bot/step)*step, y1=Math.ceil(top/step)*step;
+  const sy=v=>T+ih-(v-y0)/(y1-y0)*ih;
+  const bw=iw/data.length, barW=Math.min(42,bw*.62);
+  let g='';
+  for(let v=y0; v<=y1+1e-6; v+=step){
+    g+=`<line x1="${L}" x2="${W-R}" y1="${sy(v)}" y2="${sy(v)}" stroke="var(--line)" stroke-width="${v===0?1.5:1}"/>`;
+    g+=`<text x="${L-8}" y="${sy(v)+4}" text-anchor="end" font-size="11" fill="var(--muted)" font-family="var(--f-mono)">${$k(v)}</text>`;
+  }
+  const every=Math.ceil(data.length/12);
+  data.forEach((d,i)=>{
+    const cx=L+bw*i+bw/2, x=cx-barW/2;
+    const eqTop=sy(Math.max(0,d.eq)), eqBot=sy(Math.min(0,d.eq));
+    g+=`<rect x="${x}" y="${eqTop}" width="${barW}" height="${Math.max(0,eqBot-eqTop)}" fill="var(--accent)"><title>Year ${d.year} equity ${$(d.eq)}</title></rect>`;
+    if(d.cf>=0){const base=Math.max(0,d.eq); g+=`<rect x="${x}" y="${sy(base+d.cf)}" width="${barW}" height="${Math.max(0,sy(base)-sy(base+d.cf))}" fill="var(--brass)"><title>Year ${d.year} cash collected ${$(d.cf)}</title></rect>`;}
+    else {const base=Math.min(0,d.eq); g+=`<rect x="${x}" y="${sy(base)}" width="${barW}" height="${Math.max(0,sy(base+d.cf)-sy(base))}" fill="var(--bad)" opacity=".8"><title>Year ${d.year} cumulative cash flow ${$(d.cf)}</title></rect>`;}
+    if(i%every===0||i===data.length-1) g+=`<text x="${cx}" y="${H-10}" text-anchor="middle" font-size="11" fill="var(--muted)" font-family="var(--f-mono)">Y${d.year}</text>`;
+  });
+  const ly=sy(a.cashIn);
+  g+=`<line x1="${L}" x2="${W-R}" y1="${ly}" y2="${ly}" stroke="var(--ink)" stroke-width="1.5" stroke-dasharray="5 4"/>`;
+  g+=`<text x="${W-R}" y="${ly-6}" text-anchor="end" font-size="11" fill="var(--ink)" font-family="var(--f-mono)">${$k(a.cashIn)} in</text>`;
+  const last=data[data.length-1], lx=L+bw*(data.length-1)+bw/2, lt=sy(Math.max(0,last.eq)+Math.max(0,last.cf));
+  g+=`<text x="${Math.min(lx,W-R-4)}" y="${Math.max(T+10,lt-6)}" text-anchor="${lx>W-R-60?'end':'middle'}" font-size="11.5" font-weight="600" fill="var(--ink)" font-family="var(--f-mono)">${$k(last.eq+last.cf)}</text>`;
+  document.getElementById('chart').innerHTML=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Equity and cumulative cash flow by year">${g}</svg>`;
+}
+
+function renderSens(s,a){
+  const steps=[-.10,-.05,0,.05,.10];
+  let h=`<thead><tr><th></th>${steps.map(p=>`<th>${$k(s.price*(1+p))}<br>${p===0?'asking':(p>0?'+':'−')+Math.abs(p*100)+'%'}</th>`).join('')}</tr></thead><tbody>`;
+  steps.slice().reverse().forEach(rp=>{
+    h+=`<tr><th class="rowh">${$(s.rent*(1+rp))}<br>${rp===0?'your rent':(rp>0?'+':'−')+Math.abs(rp*100)+'%'}</th>`;
+    steps.forEach(pp=>{
+      const r=analyze(Object.assign({},s,{price:s.price*(1+pp),rent:s.rent*(1+rp)}));
+      const v=r.monthlyCF;
+      h+=`<td class="${v>=0?'p':'n'}${pp===0&&rp===0?' base':''}">${$(v)}</td>`;
+    });
+    h+='</tr>';
+  });
+  document.getElementById('sens').innerHTML=h+'</tbody>';
+}
+
+/* ---------- saved deals ---------- */
+function renderSaved(){
+  const list=store.get(STORE_SAVED)||[], w=document.getElementById('savedWrap');
+  if(!list.length){w.innerHTML='<p class="empty">No saved deals yet. Name this one and save it to start a comparison.</p>';return;}
+  w.innerHTML=`<table class="saved"><thead><tr><th>Deal</th><th>Price</th><th>Cash in</th><th>CF / mo</th><th>CoC</th><th>Cap</th><th>IRR</th><th>Verdict</th><th></th></tr></thead><tbody>`+
+    list.map((d,i)=>{const a=analyze(Object.assign({},PRESETS.sfr,d.state));
+      return `<tr><td>${d.name.replace(/[<>&]/g,'')}</td><td>${$(a.price)}</td><td>${$(a.cashIn)}</td><td class="${sgn(a.monthlyCF)}">${$(a.monthlyCF)}</td><td>${pct(a.coc)}</td><td>${pct(a.cap,2)}</td><td>${a.irr==null?'n/a':pct(a.irr)}</td><td>${d.verdict||''}</td><td><button class="btn" type="button" data-load="${i}">Load</button> <button class="btn" type="button" data-del="${i}">Remove</button></td></tr>`}).join('')+'</tbody></table>';
+}
+document.getElementById('saveBtn').addEventListener('click',()=>{
+  const nameEl=document.getElementById('dealName');
+  const list=store.get(STORE_SAVED)||[];
+  const name=nameEl.value.trim()||`Deal ${list.length+1} · ${$(state.price)}`;
+  list.push({name,state:Object.assign({},state),verdict:window.__lastAnalysis.verdict,savedAt:Date.now()});
+  store.set(STORE_SAVED,list); nameEl.value=''; renderSaved();
+});
+document.getElementById('savedWrap').addEventListener('click',e=>{
+  const list=store.get(STORE_SAVED)||[];
+  if(e.target.dataset.load!=null){state=Object.assign({},PRESETS.sfr,list[+e.target.dataset.load].state); isExample=false; document.getElementById('exampleNote').hidden=true; store.set(STORE_DRAFT,state); fillForm(); render(); window.scrollTo({top:0,behavior:'smooth'});}
+  if(e.target.dataset.del!=null){list.splice(+e.target.dataset.del,1); store.set(STORE_SAVED,list); renderSaved();}
+});
+
+buildForm(); fillForm(); render(); renderSaved();
+document.getElementById('exampleNote').hidden=!isExample;
+window.__analyze=analyze;
+})();
+</script>
+</body>
+</html>

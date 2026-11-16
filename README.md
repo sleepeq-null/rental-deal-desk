@@ -2,7 +2,7 @@
 
 A single-page underwriting tool for single-family and multifamily rental properties. Enter a deal and get an operator's read on it instantly.
 
-**Live tool:** https://sleepeqnull666.github.io/rental-deal-desk/
+**Live tool:** https://sleepeq-null.github.io/rental-deal-desk/
 
 ## What it does
 

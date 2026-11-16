@@ -1488,7 +1488,7 @@ function drawSugg(){
 }
 async function fetchSugg(q){
   if(sugCtrl) sugCtrl.abort(); sugCtrl=new AbortController();
-  const typedNum=(q.match(/^s*(d+[a-zA-Z]?)/)||[])[1];
+  const typedNum=(q.match(/^\s*(\d+[a-zA-Z]?)\b/)||[])[1];
   const p=new URLSearchParams({q,limit:'12',lang:'en'});
   p.append('layer','house'); p.append('layer','street');
   const bias=state.geo||picked; if(bias){p.set('lat',bias.lat); p.set('lon',bias.lng);}
@@ -1497,7 +1497,8 @@ async function fetchSugg(q){
   const seen=new Set();
   const NOT_ROAD=/^(path|footway|cycleway|track|bridleway|steps|pedestrian|service|proposed|construction)$/;
   sugg=(j.features||[]).filter(f=>{const pr=f.properties; if(!pr||pr.countrycode!=='US') return false;
-    if(pr.osm_key==='highway'&&NOT_ROAD.test(pr.osm_value||'')) return false;
+    const road=pr.osm_key==='highway'&&pr.type==='street'&&!NOT_ROAD.test(pr.osm_value||'');
+    if(!pr.housenumber&&!road) return false;
     if(typedNum&&pr.housenumber&&pr.housenumber.toLowerCase()!==typedNum.toLowerCase()) return false;
     return true;
   }).sort((a,b)=>(b.properties.housenumber?1:0)-(a.properties.housenumber?1:0)).map(f=>{

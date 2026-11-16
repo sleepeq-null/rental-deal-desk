@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="description" content="Underwrite rental purchases and ground-up builds: cash flow, cap rate, DSCR, IRR, BRRRR, build budget, draw schedule, and sell vs. refi-and-hold exits.">
+<meta name="description" content="Underwrite rentals, Airbnbs and ground-up builds, with live rent, sale and Airbnb comps and an area crime grade.">
 <style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
 <title>Rental Deal Desk</title>
 <meta name="claude:viewport-fit-sides" content="cover">
@@ -182,6 +182,33 @@ header.top{margin-bottom:0}
 .stack span{display:block;min-width:3px}
 .sw{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:8px;vertical-align:-1px}
 .proj tr.exitm td{color:var(--muted)}
+
+/* STR + comps */
+.inp select{flex:1;min-width:0;border:0;background:transparent;color:var(--ink);font:inherit;font-size:14px;padding:7px 8px;outline:none}
+.inp select option{background:var(--surface);color:var(--ink)}
+.wide-btn{grid-column:1/-1;padding:10px 12px}
+.hint a,.cstatus a,.empty a{color:var(--accent)}
+.cstatus{margin:0;padding:12px 16px;border-radius:10px;border:1px solid var(--line);background:var(--surface);font-size:13.5px}
+.cstatus.err{background:var(--bad-soft);border-color:transparent;color:var(--ink)}
+.cstatus.load{background:var(--accent-soft);border-color:transparent}
+.panel .cstatus{padding:10px 12px;border-radius:8px}
+.muted{color:var(--muted);font-size:12.5px}
+.crime-head{display:flex;gap:16px;align-items:center;margin-bottom:12px}
+.grade{display:inline-flex;align-items:center;justify-content:center;min-width:28px;height:24px;padding:0 6px;border-radius:5px;font-family:var(--f-display);font-weight:800;font-size:14px;background:var(--sunk);color:var(--muted)}
+.grade.big{min-width:72px;height:72px;font-size:46px;font-stretch:80%;border-radius:10px;flex:none}
+.g-A,.g-B{background:var(--good-soft);color:var(--good)} .g-C{background:var(--warn-soft);color:var(--warn)} .g-D,.g-F{background:var(--bad-soft);color:var(--bad)}
+.ctable{min-width:560px;font-size:13px}
+.ctable th{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:500;text-align:right;padding:6px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+.ctable td{text-align:right;padding:7px 8px;border-bottom:1px solid var(--line);font-family:var(--f-mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+.ctable th:first-child,.ctable td:first-child{text-align:left;font-family:var(--f-body)}
+.ctable td.nm{max-width:280px;overflow:hidden;text-overflow:ellipsis}
+.est{display:flex;flex-direction:column;gap:2px;margin-bottom:10px}
+.est .k{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.est .v{font-family:var(--f-mono);font-size:24px;font-weight:500}
+.est-row{display:flex;flex-wrap:wrap;gap:8px 32px}
+.use-row{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 12px}
+.mapbox{height:380px;border-radius:8px;overflow:hidden;border:1px solid var(--line);background:var(--sunk)}
+@media (max-width:560px){.mapbox{height:300px}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
@@ -190,7 +217,7 @@ header.top{margin-bottom:0}
   <header class="top">
     <div class="brand">
       <h1>Rental Deal Desk</h1>
-      <p>Underwrite a rental purchase or a ground-up build the way an operator would: the pro forma, the ratios lenders check, every exit, and the most you should pay.</p>
+      <p>Underwrite a rental, an Airbnb, or a ground-up build the way an operator would: the pro forma, the ratios lenders check, every exit, live comps, and the most you should pay.</p>
     </div>
     <div class="presets">
       <span class="lbl">Load example</span>
@@ -199,12 +226,17 @@ header.top{margin-bottom:0}
       <button class="btn" type="button" data-preset="brrrr" data-view="rental">BRRRR</button>
       <button class="btn" type="button" data-bpreset="spec" data-view="build" hidden>Spec house</button>
       <button class="btn" type="button" data-bpreset="quad" data-view="build" hidden>Fourplex</button>
+      <button class="btn" type="button" data-tpreset="cabin" data-view="str" hidden>Mountain cabin</button>
+      <button class="btn" type="button" data-tpreset="condo" data-view="str" hidden>City condo</button>
+      <span class="lbl" data-view="comps" hidden>Live data from RentCast, AirROI and the FBI</span>
     </div>
   </header>
 
   <nav class="tabs" aria-label="Calculator">
     <a href="#rental" aria-current="page">Buy a rental</a>
+    <a href="#str">Airbnb / short-term</a>
     <a href="#build">Ground-up build</a>
+    <a href="#comps">Live comps & crime</a>
   </nav>
 
   <div class="grid" id="view-rental">
@@ -276,6 +308,105 @@ header.top{margin-bottom:0}
       </section>
 
       <p class="foot">Assumptions: the property is rented from month one (rehab time isn't modeled), percentage-based expenses are taken on rent collected after vacancy, property value starts at the after-repair value and grows monthly at the appreciation rate, and the sale happens at the end of the final year net of selling costs. Taxes on income and sale are not included. This is an underwriting aid, not financial advice.</p>
+    </main>
+  </div>
+
+  <div class="grid" id="view-str" hidden>
+    <aside class="ledger" aria-label="Short-term rental inputs">
+      <p class="example-note" id="tExampleNote">These are example numbers. Replace them with your listing; results update as you type.</p>
+      <form id="tform" autocomplete="off"></form>
+    </aside>
+    <main class="results">
+      <section class="verdict" id="tVerdict" data-v="warn" aria-live="polite">
+        <div class="stamp" id="tStamp">—</div>
+        <div class="why" id="tWhy"></div>
+        <div class="offer" id="tOffer"></div>
+      </section>
+      <section class="kpis" id="tKpis"></section>
+      <div class="two">
+        <section class="panel">
+          <h2>Short-term rental checklist</h2>
+          <p class="sub">The bar is higher than a long-term rental: more work, more swings, and more regulation risk.</p>
+          <ul class="checks" id="tChecks"></ul>
+        </section>
+        <section class="panel">
+          <h2>Year-one pro forma</h2>
+          <p class="sub">Annual figures at your planned rate and occupancy.</p>
+          <table class="pf" id="tPf"></table>
+        </section>
+      </div>
+      <section class="panel">
+        <h2>Sensitivity: monthly cash flow</h2>
+        <p class="sub">Nightly rate and occupancy drive everything in a short-term rental. Your current case is outlined.</p>
+        <div class="scroll"><table class="sens" id="tSens"></table></div>
+        <p class="axis-note">Columns: average nightly rate. Rows: occupancy.</p>
+      </section>
+      <section class="panel">
+        <h2>Hold-period projection</h2>
+        <p class="sub" id="tProjSub"></p>
+        <div class="scroll"><table class="proj" id="tProj"></table></div>
+      </section>
+      <p class="foot">Assumptions: occupancy and nightly rate are annual averages; cleaning fees are charged per stay and cleaners are paid per turnover; occupancy and lodging taxes are passed through to guests; the long-term comparison assumes 5% vacancy, 22% of rent for repairs, reserves and management, and a lower landlord insurance premium. Check your city's short-term rental rules before buying. This is an underwriting aid, not financial advice.</p>
+    </main>
+  </div>
+
+  <div class="grid" id="view-comps" hidden>
+    <aside class="ledger" aria-label="Comps lookup">
+      <form id="cform" autocomplete="off">
+        <section class="group">
+          <h3>Property to look up</h3>
+          <div class="fields">
+            <label class="field wide" for="c-address"><span class="lbl">Address</span><span class="inp"><input id="c-address" type="text" placeholder="123 Main St, Austin, TX 78701"></span></label>
+            <label class="field wide" for="c-ptype"><span class="lbl">Property type</span><span class="inp"><select id="c-ptype"><option>Single Family</option><option>Condo</option><option>Townhouse</option><option>Multi-Family</option><option>Manufactured</option></select></span></label>
+            <label class="field" for="c-beds"><span class="lbl">Bedrooms</span><span class="inp"><input id="c-beds" type="number" step="1" min="0"></span></label>
+            <label class="field" for="c-baths"><span class="lbl">Bathrooms</span><span class="inp"><input id="c-baths" type="number" step="0.5" min="0"></span></label>
+            <label class="field" for="c-sqft"><span class="lbl">Square feet</span><span class="inp"><input id="c-sqft" type="number" step="1" min="0"></span></label>
+            <label class="field" for="c-count"><span class="lbl">Comps to pull</span><span class="inp"><input id="c-count" type="number" step="1" min="5" max="25"></span></label>
+            <button class="btn primary wide-btn" type="submit">Pull comps & crime data</button>
+          </div>
+        </section>
+        <section class="group">
+          <h3>Data keys</h3>
+          <div class="fields">
+            <label class="field wide" for="k-rentcast"><span class="lbl">RentCast key · rent & sale comps</span><span class="inp"><input id="k-rentcast" type="password" autocomplete="off" spellcheck="false"></span></label>
+            <label class="field wide" for="k-airroi"><span class="lbl">AirROI key · Airbnb comps</span><span class="inp"><input id="k-airroi" type="password" autocomplete="off" spellcheck="false"></span></label>
+            <label class="field wide" for="k-datagov"><span class="lbl">api.data.gov key · crime data (optional)</span><span class="inp"><input id="k-datagov" type="password" autocomplete="off" spellcheck="false" placeholder="Uses a shared demo key if blank"></span></label>
+            <p class="hint">Get keys at <a href="https://www.rentcast.io/api" target="_blank" rel="noopener">rentcast.io/api</a> (free, 50 lookups a month), <a href="https://www.airroi.com/api" target="_blank" rel="noopener">airroi.com/api</a> (pay per lookup) and <a href="https://api.data.gov/signup/" target="_blank" rel="noopener">api.data.gov</a> (free). Keys are saved in this browser only and sent only to their own service. The address is also sent to Photon (komoot) to find it on the map.</p>
+          </div>
+        </section>
+      </form>
+    </aside>
+    <main class="results">
+      <p class="cstatus" id="cGlobal">Enter an address and pull data to see rent comps, sale comps, Airbnb comps and an area crime grade.</p>
+      <section class="panel">
+        <h2>Area crime grade</h2>
+        <p class="sub">Violent and property crime per 100,000 residents from FBI data, graded against the national rate.</p>
+        <div id="cCrime"></div>
+      </section>
+      <section class="panel" id="cMap" hidden>
+        <h2>Map</h2>
+        <div class="legend">
+          <span><i style="background:var(--accent)"></i>Rent comps</span>
+          <span><i style="background:var(--brass)"></i>Sale comps</span>
+          <span><i style="background:var(--cat-fin)"></i>Airbnb comps</span>
+          <span><i style="background:var(--muted)"></i>Police agency</span>
+          <span><i style="background:transparent;border:1.5px solid var(--good)"></i>1-mile ring, colored by crime grade</span>
+        </div>
+        <div id="cMapInner" class="mapbox"></div>
+      </section>
+      <section class="panel">
+        <h2>Rent comps</h2>
+        <div id="cRent"></div>
+      </section>
+      <section class="panel">
+        <h2>Sale comps</h2>
+        <div id="cValue"></div>
+      </section>
+      <section class="panel">
+        <h2>Airbnb comps</h2>
+        <div id="cStr"></div>
+      </section>
+      <p class="foot">Live lookups run on the GitHub site version of this tool. Comps are estimates from third-party listing data; confirm with a local agent or property manager before you rely on them.</p>
     </main>
   </div>
 
@@ -706,6 +837,7 @@ document.getElementById('savedWrap').addEventListener('click',e=>{
 buildForm(); fillForm(); render(); renderSaved();
 document.getElementById('exampleNote').hidden=!isExample;
 window.__analyze=analyze;
+window.__applyRental=p=>{Object.assign(state,p); isExample=false; document.getElementById('exampleNote').hidden=true; store.set(STORE_DRAFT,state); fillForm(); render();};
 })();
 </script>
 <script>
@@ -1038,16 +1170,524 @@ function render(){
 
 /* ---------- views ---------- */
 function route(){
-  const view=location.hash==='#build'?'build':'rental';
-  document.getElementById('view-rental').hidden=view!=='rental';
-  document.getElementById('view-build').hidden=view!=='build';
+  const VIEWS=['rental','str','build','comps'], h=location.hash.slice(1), view=VIEWS.includes(h)?h:'rental';
+  VIEWS.forEach(v=>{document.getElementById('view-'+v).hidden=v!==view;});
   document.querySelectorAll('.tabs a').forEach(t=>t.setAttribute('aria-current',t.getAttribute('href')==='#'+view?'page':'false'));
   document.querySelectorAll('[data-view]').forEach(b=>b.hidden=b.dataset.view!==view);
 }
 window.addEventListener('hashchange',route);
 
 buildForm(); fillForm(); render(); note.hidden=!isEx; route();
-window.__analyzeBuild=analyzeBuild; window.__BP=BP;
+window.__analyzeBuild=analyzeBuild;
+window.__applyBuild=p=>{Object.assign(S,p); isEx=false; note.hidden=true; store.set(KEY,S); fillForm(); render();}; window.__BP=BP;
+})();
+</script>
+<script>
+(function(){
+const TP = {
+  cabin:{price:395000,closingPct:3,furnish:35000,rehab:10000,allCash:false,downPct:25,rate:7.25,term:30,points:1,
+    adr:295,occ:60,cleanFee:150,los:3.2,otherInc:0,
+    platformPct:3,cleanCost:135,supplyPct:3,mgmtPct:0,utilities:450,software:60,permit:300,taxes:4200,insurance:3200,hoa:0,
+    maint:5,capex:4,ffe:3,appr:3,revGrowth:3,expGrowth:3,hold:7,sellPct:7,ltrRent:2200,targetCoc:12},
+  condo:{price:310000,closingPct:3,furnish:22000,rehab:0,allCash:false,downPct:25,rate:7.25,term:30,points:0.5,
+    adr:165,occ:68,cleanFee:95,los:2.6,otherInc:0,
+    platformPct:3,cleanCost:85,supplyPct:3,mgmtPct:20,utilities:220,software:50,permit:500,taxes:3600,insurance:1400,hoa:425,
+    maint:4,capex:3,ffe:3,appr:3,revGrowth:3,expGrowth:3,hold:7,sellPct:7,ltrRent:2100,targetCoc:12}
+};
+const TG = [
+  {t:'Purchase', f:[
+    {k:'price',l:'Purchase price',pre:'$'},
+    {k:'closingPct',l:'Closing costs',suf:'%'},
+    {k:'furnish',l:'Furnishing & setup',pre:'$'},
+    {k:'rehab',l:'Rehab budget',pre:'$'},
+  ]},
+  {t:'Financing', toggle:{k:'allCash',l:'All cash'}, f:[
+    {k:'downPct',l:'Down payment',suf:'%',off:s=>s.allCash},
+    {k:'rate',l:'Interest rate',suf:'%',off:s=>s.allCash},
+    {k:'term',l:'Loan term',suf:'yrs',off:s=>s.allCash},
+    {k:'points',l:'Points',suf:'% of loan',off:s=>s.allCash},
+  ]},
+  {t:'Bookings', f:[
+    {k:'adr',l:'Average nightly rate',pre:'$',suf:'/night'},
+    {k:'occ',l:'Occupancy',suf:'%'},
+    {k:'cleanFee',l:'Cleaning fee charged',pre:'$',suf:'/stay'},
+    {k:'los',l:'Average stay',suf:'nights'},
+    {k:'otherInc',l:'Other income',pre:'$',suf:'/mo',wide:true},
+    {hint:'Pull nightly rate and occupancy from the Live comps tab, or from nearby listings with the same bedroom count.'},
+  ]},
+  {t:'Operating costs', f:[
+    {k:'platformPct',l:'Platform fee',suf:'% of revenue'},
+    {k:'cleanCost',l:'Cleaner cost',pre:'$',suf:'/turnover'},
+    {k:'supplyPct',l:'Supplies',suf:'% of revenue'},
+    {k:'mgmtPct',l:'Co-host / manager',suf:'% of revenue'},
+    {k:'utilities',l:'Utilities & internet',pre:'$',suf:'/mo'},
+    {k:'software',l:'Pricing & software',pre:'$',suf:'/mo'},
+    {k:'permit',l:'STR permit',pre:'$',suf:'/yr'},
+    {k:'hoa',l:'HOA',pre:'$',suf:'/mo'},
+    {k:'taxes',l:'Property taxes',pre:'$',suf:'/yr'},
+    {k:'insurance',l:'STR insurance',pre:'$',suf:'/yr'},
+    {k:'maint',l:'Repairs',suf:'% of revenue'},
+    {k:'capex',l:'CapEx reserve',suf:'% of revenue'},
+    {k:'ffe',l:'Furniture replacement',suf:'% of revenue',wide:true},
+    {hint:'Airbnb’s split fee is about 3% to the host. Occupancy and lodging taxes are collected from guests and passed through, so they are left out.'},
+  ]},
+  {t:'Compare & exit', f:[
+    {k:'ltrRent',l:'Long-term rent instead',pre:'$',suf:'/mo',wide:true},
+    {k:'appr',l:'Appreciation',suf:'%/yr'},
+    {k:'revGrowth',l:'Revenue growth',suf:'%/yr'},
+    {k:'expGrowth',l:'Expense growth',suf:'%/yr'},
+    {k:'hold',l:'Hold period',suf:'yrs'},
+    {k:'sellPct',l:'Selling costs',suf:'%'},
+    {k:'targetCoc',l:'Target cash-on-cash',suf:'%'},
+  ]},
+];
+const KEY='deal-desk:str:v1';
+const store={get(k){try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+let S=Object.assign({},TP.cabin,store.get(KEY)||{});
+let isEx=!store.get(KEY);
+const form=document.getElementById('tform'), note=document.getElementById('tExampleNote');
+
+function buildForm(){
+  form.innerHTML=TG.map((g,gi)=>{
+    const tog=g.toggle?`<label class="switch" for="t-${g.toggle.k}"><input type="checkbox" id="t-${g.toggle.k}" data-k="${g.toggle.k}"><i></i>${g.toggle.l}</label>`:'';
+    return `<section class="group"><h3>${g.t}${tog}</h3><div class="fields">${g.f.map((f,fi)=>{
+      if(f.hint) return `<p class="hint">${f.hint}</p>`;
+      return `<label class="field${f.wide?' wide':''}" for="t-${f.k}" data-g="${gi}" data-f="${fi}"><span class="lbl">${f.l}</span><span class="inp">${f.pre?`<span>${f.pre}</span>`:''}<input id="t-${f.k}" type="number" step="any" inputmode="decimal" data-k="${f.k}">${f.suf?`<span>${f.suf}</span>`:''}</span></label>`;
+    }).join('')}</div></section>`;
+  }).join('');
+}
+function fillForm(){
+  form.querySelectorAll('[data-k]').forEach(el=>{const k=el.dataset.k;
+    if(el.type==='checkbox') el.checked=!!S[k]; else if(document.activeElement!==el) el.value=S[k];});
+  sync();
+}
+function sync(){
+  form.querySelectorAll('[data-g]').forEach(el=>{const f=TG[+el.dataset.g].f[+el.dataset.f];
+    if(f.off){const off=f.off(S); el.classList.toggle('off',off); el.querySelector('input').disabled=off;}});
+}
+form.addEventListener('input',e=>{
+  const el=e.target,k=el.dataset.k; if(!k) return;
+  if(el.type==='checkbox') S[k]=el.checked; else {const v=parseFloat(el.value); S[k]=isFinite(v)?v:0;}
+  if(isEx){isEx=false; note.hidden=true;}
+  store.set(KEY,S); sync(); render();
+});
+form.addEventListener('submit',e=>e.preventDefault());
+document.querySelectorAll('[data-tpreset]').forEach(b=>b.addEventListener('click',()=>{
+  S=Object.assign({},TP[b.dataset.tpreset]); isEx=true; note.hidden=false;
+  try{localStorage.removeItem(KEY)}catch(e){}
+  fillForm(); render();
+}));
+
+/* ---------- math ---------- */
+function pmt(rate,n,pv){if(pv<=0||n<=0)return 0;const r=rate/1200;if(r===0)return pv/n;return pv*r/(1-Math.pow(1+r,-n));}
+function irrM(flows){
+  const npv=r=>{let a=0,d=1;for(let i=0;i<flows.length;i++){a+=flows[i]/d;d*=(1+r);}return a};
+  let lo=-0.5,hi=0.5,flo=npv(lo),fhi=npv(hi);
+  if(!isFinite(flo)||!isFinite(fhi)||flo*fhi>0) return null;
+  for(let i=0;i<200;i++){const mid=(lo+hi)/2,fm=npv(mid);if(flo*fm<=0){hi=mid;}else{lo=mid;flo=fm;}if(hi-lo<1e-10)break;}
+  return Math.pow(1+(lo+hi)/2,12)-1;
+}
+function yearOps(s,yi){
+  const rf=Math.pow(1+s.revGrowth/100,yi), ef=Math.pow(1+s.expGrowth/100,yi);
+  const occ=Math.min(100,Math.max(0,s.occ))/100;
+  const nights=365*occ, stays=s.los>0?nights/s.los:0;
+  const room=nights*s.adr*rf, clean=stays*s.cleanFee*rf, other=s.otherInc*12*rf;
+  const gross=room+clean+other;
+  const platform=gross*s.platformPct/100, cleaning=stays*s.cleanCost*ef, supplies=gross*s.supplyPct/100,
+        mgmt=gross*s.mgmtPct/100, maint=gross*s.maint/100, capex=gross*s.capex/100, ffe=gross*s.ffe/100;
+  const utilities=s.utilities*12*ef, software=s.software*12*ef, permit=s.permit*ef, hoa=s.hoa*12*ef, taxes=s.taxes*ef, insurance=s.insurance*ef;
+  const opex=platform+cleaning+supplies+mgmt+maint+capex+ffe+utilities+software+permit+hoa+taxes+insurance;
+  return {nights,stays,room,clean,other,gross,platform,cleaning,supplies,mgmt,maint,capex,ffe,utilities,software,permit,hoa,taxes,insurance,opex,noi:gross-opex};
+}
+function analyzeSTR(s){
+  const price=Math.max(0,s.price), closing=price*s.closingPct/100;
+  const loan=s.allCash?0:Math.max(0,price*(1-s.downPct/100)), fees=loan*s.points/100;
+  const cashIn=price-loan+closing+fees+s.furnish+s.rehab;
+  const n=Math.max(1,s.term)*12, pay=pmt(s.rate,n,loan), r=s.rate/1200;
+  const H=Math.min(40,Math.max(1,Math.round(s.hold)||1));
+  const flows=[-cashIn], years=[]; let bal=loan, cum=0;
+  for(let yi=0;yi<H;yi++){
+    const o=yearOps(s,yi); let ds=0;
+    for(let m=0;m<12;m++){let f=o.noi/12; if(bal>0.005){const it=bal*r,p=Math.min(pay,bal+it); bal-=p-it; ds+=p; f-=p;}
+      if(yi===H-1&&m===11){f+=price*Math.pow(1+s.appr/100,H)*(1-s.sellPct/100)-bal;} flows.push(f);}
+    cum+=o.noi-ds;
+    years.push(Object.assign({year:yi+1,ds,cf:o.noi-ds,cum,value:price*Math.pow(1+s.appr/100,yi+1),bal},o));
+  }
+  const y1=years[0], cf=y1.cf;
+  // break-even occupancy: CF is linear in occupancy
+  const cfAt=o=>{const t=yearOps(Object.assign({},s,{occ:o}),0); return t.noi-y1.ds};
+  const c0=cfAt(0), c100=cfAt(100);
+  const beOcc=c100>c0? Math.max(0,-c0/(c100-c0)) : Infinity;
+  // long-term rental comparison (simple: 5% vacancy, 22% of rent for repairs/capex/management)
+  const ltrEgi=s.ltrRent*12*0.95;
+  const ltrNoi=ltrEgi-ltrEgi*0.22-s.taxes-s.insurance*0.55-s.hoa*12;
+  const ltrCf=ltrNoi-y1.ds;
+  const occForLtr = c100>c0? (ltrCf-c0)/(c100-c0) : Infinity;
+  const sum=flows.slice(1).reduce((a,b)=>a+b,0);
+  return {price,closing,loan,fees,cashIn,pay,H,years,y1,cf,monthlyCF:cf/12,
+    coc:cashIn>0?cf/cashIn:Infinity, cap:price>0?y1.noi/price:0, dscr:y1.ds>0?y1.noi/y1.ds:Infinity,
+    revpar:y1.room/365, grossYield:price>0?y1.gross/price:0, beOcc, ltrCf, occForLtr,
+    irr:irrM(flows), em:cashIn>0?sum/cashIn:Infinity, profit:sum-cashIn};
+}
+function maxOffer(s,t){
+  const f=p=>analyzeSTR(Object.assign({},s,{price:p})).coc;
+  let lo=1000,hi=Math.max(s.price*3,50000);
+  if(f(lo)<t/100) return null; if(f(hi)>=t/100) return hi;
+  for(let i=0;i<50;i++){const mid=(lo+hi)/2; if(f(mid)>=t/100) lo=mid; else hi=mid;}
+  return Math.floor(lo/500)*500;
+}
+
+/* ---------- format ---------- */
+const $=n=>(n<0?'−$':'$')+Math.abs(Math.round(n)).toLocaleString('en-US');
+const pct=(n,d=1)=>n==null?'n/a':!isFinite(n)?'∞':(n<0?'−':'')+Math.abs(n*100).toFixed(d)+'%';
+const x2=n=>!isFinite(n)?'No debt':n.toFixed(2)+'×';
+const sgn=n=>n>=0?'pos':'neg';
+const grade=(v,p,w,hi=true)=>hi?(v>=p?'pass':v>=w?'warn':'fail'):(v<=p?'pass':v<=w?'warn':'fail');
+
+function render(){
+  const s=S,a=analyzeSTR(s),y=a.y1;
+  const prem = a.ltrCf>0 ? a.cf/a.ltrCf : (a.cf>0?Infinity:0);
+  const checks=[
+    {n:'Monthly cash flow',rule:'$500+ strong, $250 minimum; STRs need a bigger cushion',val:$(a.monthlyCF),st:grade(a.monthlyCF,500,250)},
+    {n:'Cash-on-cash return',rule:'15%+ strong, 10% minimum for the extra work and risk',val:pct(a.coc),st:grade(a.coc,.15,.10)},
+    {n:'Break-even occupancy',rule:'Under 45% survives a slow season',val:pct(a.beOcc,0),st:grade(a.beOcc,.45,.55,false)},
+    {n:'Gross revenue ÷ price',rule:'20%+ strong, 15% minimum',val:pct(a.grossYield),st:grade(a.grossYield,.20,.15)},
+    {n:'Beats long-term renting',rule:'1.5× the long-term cash flow or better',val:isFinite(prem)?prem.toFixed(1)+'×':'LTR loses money',st:grade(prem,1.5,1.2)},
+    {n:'Debt service coverage',rule:'1.25× for a DSCR loan',val:x2(a.dscr),st:grade(a.dscr,1.25,1.10)},
+    {n:`IRR over ${a.H} years`,rule:'15%+ strong, 10% minimum',val:pct(a.irr),st:a.irr==null?'fail':grade(a.irr,.15,.10)},
+  ];
+  const score=checks.reduce((t,c)=>t+(c.st==='pass'?2:c.st==='warn'?1:0),0)/(checks.length*2);
+  const fails=checks.filter(c=>c.st==='fail').map(c=>c.n.toLowerCase());
+  let v,word,why;
+  if(a.cf<0){v='bad';word='Pass on it';why=`It loses <b>${$(-a.monthlyCF)}</b> a month at ${s.occ}% occupancy. A short-term rental has to cash flow on a normal year, not a great one.`;}
+  else if(score>=.75&&!fails.length){v='good';word='Book it';why=`Cash flows <b>${$(a.monthlyCF)}/mo</b> and still breaks even at ${pct(a.beOcc,0)} occupancy. Confirm the city allows short-term rentals before you offer.`;}
+  else if(score>=.5){v='warn';word='Workable';why=`Cash flows <b>${$(a.monthlyCF)}/mo</b>${fails.length?`, but it's weak on ${fails.join(', ')}`:''}. Check local STR rules and push on price.`;}
+  else {v='bad';word='Pass on it';why=`Only <b>${$(a.monthlyCF)}/mo</b> for the work of running a short-term rental${fails.length?`, and it misses on ${fails.join(', ')}`:''}.`;}
+  const vEl=document.getElementById('tVerdict'); vEl.dataset.v=v;
+  document.getElementById('tStamp').textContent=word;
+  document.getElementById('tWhy').innerHTML=why;
+  const mo=maxOffer(s,s.targetCoc);
+  document.getElementById('tOffer').innerHTML=
+    `<span>Max offer for ${s.targetCoc}% cash-on-cash: <strong>${mo==null?'not reachable':$(mo)}</strong></span>`+
+    `<span>Total cash needed: <strong>${$(a.cashIn)}</strong></span>`+
+    `<span>Occupancy to match long-term renting: <strong>${isFinite(a.occForLtr)?pct(Math.max(0,a.occForLtr),0):'n/a'}</strong></span>`;
+
+  const k=(l,val,sub,cls='')=>`<div class="kpi"><span class="k">${l}</span><span class="v ${cls}">${val}</span><span class="s">${sub}</span></div>`;
+  document.getElementById('tKpis').innerHTML=[
+    k('Monthly cash flow',$(a.monthlyCF),'Year one, after debt',sgn(a.cf)),
+    k('Cash-on-cash',pct(a.coc),'Includes furnishing in cash in',sgn(a.coc)),
+    k('Gross revenue',$(y.gross),`${Math.round(y.nights)} nights, ${Math.round(y.stays)} stays`),
+    k('RevPAR',$(a.revpar),'Room revenue per available night'),
+    k('Break-even occupancy',pct(a.beOcc,0),`You plan on ${s.occ}%`),
+    k('vs. long-term rental',(a.cf-a.ltrCf>=0?'+':'−')+$(Math.abs(a.cf-a.ltrCf)/12).replace('−','')+'/mo',`Long-term: ${$(a.ltrCf/12)}/mo`,sgn(a.cf-a.ltrCf)),
+    k('Cap rate',pct(a.cap,2),'NOI ÷ price'),
+    k(`IRR (${a.H}-yr hold)`,pct(a.irr),'Includes sale',a.irr==null?'':sgn(a.irr)),
+  ].join('');
+
+  document.getElementById('tChecks').innerHTML=checks.map(c=>`<li><span>${c.n}<span class="rule">${c.rule}</span></span><span class="val">${c.val}</span><span class="chip ${c.st}">${c.st}</span></li>`).join('');
+
+  const row=(l,v,cls='',note='')=>`<tr class="${cls}"><td>${l}</td><td>${note}</td><td class="${v<0?'neg':''}">${$(v)}</td></tr>`;
+  const pg=n=>y.gross>0?pct(n/y.gross,0):'';
+  let pf=row('Nightly revenue',y.room,'sub',`${Math.round(y.nights)} nights × ${$(s.adr)}`)+row('Cleaning fees collected',y.clean,'sub',`${Math.round(y.stays)} stays`);
+  if(y.other) pf+=row('Other income',y.other,'sub');
+  pf+=row('Gross revenue',y.gross,'total');
+  [['Platform fees',y.platform],['Cleaners',y.cleaning],['Supplies',y.supplies],['Co-host / manager',y.mgmt],['Utilities & internet',y.utilities],['Pricing & software',y.software],['STR permit',y.permit],['HOA',y.hoa],['Property taxes',y.taxes],['Insurance',y.insurance],['Repairs',y.maint],['CapEx reserve',y.capex],['Furniture replacement',y.ffe]]
+    .forEach(([l,v])=>{if(v>0) pf+=row(l,-v,'sub',pg(v));});
+  pf+=row('Net operating income',y.noi,'total',`${pct(y.opex/Math.max(1,y.gross),0)} expense ratio`);
+  pf+=row('Debt service',-y.ds,'sub',s.allCash?'all cash':`${s.rate}% · ${s.term} yr`);
+  pf+=`<tr class="grand"><td>Cash flow</td><td></td><td class="${sgn(y.cf)}">${$(y.cf)}</td></tr>`;
+  document.getElementById('tPf').innerHTML=pf;
+
+  // sensitivity: ADR x occupancy
+  const adrSteps=[-.10,-.05,0,.05,.10], occSteps=[10,5,0,-5,-10];
+  let sh=`<thead><tr><th></th>${adrSteps.map(p=>`<th>${$(s.adr*(1+p))}<br>${p===0?'your rate':(p>0?'+':'−')+Math.abs(p*100)+'%'}</th>`).join('')}</tr></thead><tbody>`;
+  occSteps.forEach(op=>{
+    const o=Math.min(100,Math.max(0,s.occ+op));
+    sh+=`<tr><th class="rowh">${o}%<br>${op===0?'your occupancy':(op>0?'+':'−')+Math.abs(op)+' pts'}</th>`;
+    adrSteps.forEach(p=>{const c=analyzeSTR(Object.assign({},s,{adr:s.adr*(1+p),occ:o})).monthlyCF;
+      sh+=`<td class="${c>=0?'p':'n'}${op===0&&p===0?' base':''}">${$(c)}</td>`;});
+    sh+='</tr>';
+  });
+  document.getElementById('tSens').innerHTML=sh+'</tbody>';
+
+  document.getElementById('tProjSub').textContent=`Revenue grows ${s.revGrowth}%/yr, expenses ${s.expGrowth}%/yr, value ${s.appr}%/yr. Sold at the end of year ${a.H}.`;
+  document.getElementById('tProj').innerHTML=`<thead><tr>${['Year','Gross revenue','NOI','Debt service','Cash flow','CoC','Cum. cash flow','Value','Loan balance','Equity'].map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>`+
+    a.years.map(r=>`<tr><td>${r.year}</td><td>${$(r.gross)}</td><td>${$(r.noi)}</td><td>${$(r.ds)}</td><td class="${sgn(r.cf)}">${$(r.cf)}</td><td>${a.cashIn>0?pct(r.cf/a.cashIn):'∞'}</td><td>${$(r.cum)}</td><td>${$(r.value)}</td><td>${$(r.bal)}</td><td>${$(r.value-r.bal)}</td></tr>`).join('')+'</tbody>';
+}
+
+buildForm(); fillForm(); render(); note.hidden=!isEx;
+window.__analyzeSTR=analyzeSTR; window.__TP=TP;
+window.__applySTR=p=>{Object.assign(S,p); isEx=false; note.hidden=true; store.set(KEY,S); fillForm(); render();};
+})();
+</script>
+<script>
+(function(){
+const KEYS='deal-desk:keys:v1', SUBJ='deal-desk:subject:v1';
+const store={get(k){try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+const keys=Object.assign({rentcast:'',airroi:'',datagov:''},store.get(KEYS)||{});
+const subj=Object.assign({address:'',ptype:'Single Family',beds:3,baths:2,sqft:1600,count:10},store.get(SUBJ)||{});
+const el=id=>document.getElementById(id);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const $=n=>n==null||!isFinite(n)?'—':(n<0?'−$':'$')+Math.abs(Math.round(n)).toLocaleString('en-US');
+const num=(n,d=0)=>n==null||!isFinite(n)?'—':(+n).toLocaleString('en-US',{maximumFractionDigits:d,minimumFractionDigits:d});
+const median=a=>{const b=a.filter(x=>x!=null&&isFinite(x)).sort((x,y)=>x-y);if(!b.length)return null;const m=b.length>>1;return b.length%2?b[m]:(b[m-1]+b[m])/2};
+
+/* ---------- form ---------- */
+const ids={address:'c-address',ptype:'c-ptype',beds:'c-beds',baths:'c-baths',sqft:'c-sqft',count:'c-count'};
+Object.entries(ids).forEach(([k,id])=>{el(id).value=subj[k];});
+['rentcast','airroi','datagov'].forEach(k=>{el('k-'+k).value=keys[k];});
+el('cform').addEventListener('input',e=>{
+  const t=e.target;
+  const sk=Object.keys(ids).find(k=>ids[k]===t.id);
+  if(sk){subj[sk]=t.type==='number'?parseFloat(t.value)||0:t.value; store.set(SUBJ,subj);}
+  const kk=t.id.startsWith('k-')?t.id.slice(2):null;
+  if(kk){keys[kk]=t.value.trim(); store.set(KEYS,keys);}
+});
+el('cform').addEventListener('submit',e=>{e.preventDefault(); pull();});
+
+/* ---------- fetch helpers ---------- */
+let blocked=false;
+async function getJSON(url,opts={}){
+  let res;
+  try{res=await fetch(url,opts);}
+  catch(e){blocked=true; throw new Error('blocked');}
+  if(!res.ok){
+    let msg=''; try{const j=await res.json(); msg=j.message||j.error||j.detail||(j.error&&j.error.message)||'';}catch(e){}
+    const err=new Error(res.status===401||res.status===403?'The service rejected the API key. Check that it was copied correctly.':res.status===429?'Rate limit reached. Wait a while or use your own key.':res.status===404?'No data found for this address.':`Request failed (${res.status}). ${msg}`);
+    err.status=res.status; throw err;
+  }
+  return res.json();
+}
+const STATES={alabama:'AL',alaska:'AK',arizona:'AZ',arkansas:'AR',california:'CA',colorado:'CO',connecticut:'CT',delaware:'DE','district of columbia':'DC',florida:'FL',georgia:'GA',hawaii:'HI',idaho:'ID',illinois:'IL',indiana:'IN',iowa:'IA',kansas:'KS',kentucky:'KY',louisiana:'LA',maine:'ME',maryland:'MD',massachusetts:'MA',michigan:'MI',minnesota:'MN',mississippi:'MS',missouri:'MO',montana:'MT',nebraska:'NE',nevada:'NV','new hampshire':'NH','new jersey':'NJ','new mexico':'NM','new york':'NY','north carolina':'NC','north dakota':'ND',ohio:'OH',oklahoma:'OK',oregon:'OR',pennsylvania:'PA','rhode island':'RI','south carolina':'SC','south dakota':'SD',tennessee:'TN',texas:'TX',utah:'UT',vermont:'VT',virginia:'VA',washington:'WA','west virginia':'WV',wisconsin:'WI',wyoming:'WY'};
+async function geocode(q){
+  const j=await getJSON('https://photon.komoot.io/api/?limit=1&lang=en&q='+encodeURIComponent(q));
+  const f=j.features&&j.features[0]; if(!f) throw new Error('Couldn’t find that address. Add the city and state.');
+  const p=f.properties||{}, [lng,lat]=f.geometry.coordinates;
+  if(p.countrycode&&p.countrycode!=='US') throw new Error('Only US addresses are supported.');
+  return {lat,lng,state:STATES[(p.state||'').toLowerCase()]||null,city:p.city||p.town||p.county||'',label:[p.housenumber,p.street,p.city,p.state].filter(Boolean).join(' ')};
+}
+const miles=(a,b,c,d)=>{const R=3958.8,t=x=>x*Math.PI/180,dl=t(c-a),dn=t(d-b);const h=Math.sin(dl/2)**2+Math.cos(t(a))*Math.cos(t(c))*Math.sin(dn/2)**2;return 2*R*Math.asin(Math.sqrt(h))};
+
+/* ---------- section state ---------- */
+const state={geo:null,rent:null,value:null,str:null,crime:null};
+function setStatus(id,html,kind=''){const n=el(id); n.innerHTML=html; n.className='cstatus '+kind;}
+
+async function pull(){
+  const addr=subj.address.trim();
+  if(!addr){setStatus('cGlobal','Enter the property address first, with city and state.','err');return;}
+  blocked=false;
+  setStatus('cGlobal','Looking up the address…','load');
+  ['rent','value','str','crime'].forEach(s=>{state[s]=null;});
+  renderAll();
+  try{state.geo=await geocode(addr);}
+  catch(e){
+    if(blocked){showBlocked();return;}
+    state.geo=null; setStatus('cGlobal',esc(e.message),'err');
+  }
+  if(state.geo) setStatus('cGlobal',`Found <b>${esc(state.geo.label||addr)}</b>. Pulling data…`,'load');
+  await Promise.allSettled([pullRentcast(addr),pullCrime(),pullSTR()]);
+  if(blocked){showBlocked();return;}
+  setStatus('cGlobal',state.geo?`Showing data for <b>${esc(state.geo.label||addr)}</b>. Pulled ${new Date().toLocaleString()}.`:'Some lookups need a matched address.','');
+  renderAll();
+}
+function showBlocked(){
+  setStatus('cGlobal',`This view can’t reach outside data services. Open the <a href="https://sleepeq-null.github.io/rental-deal-desk/#comps" target="_blank" rel="noopener">GitHub site version</a> to pull live comps and crime data.`,'err');
+  renderAll();
+}
+
+async function pullRentcast(addr){
+  if(!keys.rentcast){state.rent=state.value={need:true};renderAll();return;}
+  state.rent=state.value={loading:true}; renderAll();
+  const q=new URLSearchParams({address:addr,propertyType:subj.ptype,compCount:String(Math.min(25,Math.max(5,subj.count||10)))});
+  if(subj.beds) q.set('bedrooms',subj.beds); if(subj.baths) q.set('bathrooms',subj.baths); if(subj.sqft) q.set('squareFootage',subj.sqft);
+  const h={headers:{'X-Api-Key':keys.rentcast,'Accept':'application/json'}};
+  const [r,v]=await Promise.allSettled([getJSON('https://api.rentcast.io/v1/avm/rent/long-term?'+q,h),getJSON('https://api.rentcast.io/v1/avm/value?'+q,h)]);
+  state.rent=r.status==='fulfilled'?r.value:{error:r.reason.message};
+  state.value=v.status==='fulfilled'?v.value:{error:v.reason.message};
+  if(!state.geo){const src=[state.rent,state.value].find(x=>x&&x.latitude); if(src) state.geo={lat:src.latitude,lng:src.longitude,state:null,label:addr};}
+  renderAll();
+}
+async function pullSTR(){
+  if(!keys.airroi){state.str={need:true};renderAll();return;}
+  if(!state.geo){state.str={error:'Needs a matched address.'};renderAll();return;}
+  state.str={loading:true}; renderAll();
+  const q=new URLSearchParams({latitude:state.geo.lat,longitude:state.geo.lng,bedrooms:subj.beds||3,bathrooms:subj.baths||2,accommodates:Math.max(2,(subj.beds||3)*2)});
+  try{state.str=await getJSON('https://api.airroi.com/listings/comparables?'+q,{headers:{'x-api-key':keys.airroi,'Accept':'application/json'}});}
+  catch(e){state.str={error:e.message==='blocked'?'AirROI didn’t allow the request from a browser. Check the key, or look up comps on airroi.com.':e.message};}
+  renderAll();
+}
+async function pullCrime(){
+  if(!state.geo||!state.geo.state){state.crime={error:'Needs a matched address with a state.'};renderAll();return;}
+  state.crime={loading:true}; renderAll();
+  const key=keys.datagov||'DEMO_KEY', B='https://api.usa.gov/crime/fbi/cde';
+  try{
+    const list=await getJSON(`${B}/agency/byStateAbbr/${state.geo.state}?API_KEY=${encodeURIComponent(key)}`);
+    const all=[].concat(...Object.values(list)).filter(a=>a.latitude!=null&&a.longitude!=null);
+    all.forEach(a=>a.d=miles(state.geo.lat,state.geo.lng,a.latitude,a.longitude));
+    const city=all.filter(a=>a.agency_type_name==='City').sort((x,y)=>x.d-y.d)[0];
+    const county=all.filter(a=>a.agency_type_name==='County').sort((x,y)=>x.d-y.d)[0];
+    const ag=city&&city.d<=6?city:(county||city);
+    if(!ag) throw new Error('No police agency found near this address.');
+    const yr=new Date().getFullYear()-1;
+    const get=o=>getJSON(`${B}/summarized/agency/${ag.ori}/${o}?from=01-${yr-1}&to=12-${yr}&API_KEY=${encodeURIComponent(key)}`);
+    const [vc,pc]=await Promise.all([get('violent-crime'),get('property-crime')]);
+    const sumYear=(series,y)=>{if(!series)return null;let t=0,n=0;for(const k in series){if(k.endsWith('-'+y)&&series[k]!=null){t+=+series[k];n++;}}return n>=10?t*12/n:null};
+    const pick=(j,suffix)=>{const r=j.offenses&&j.offenses.rates||{};const k=Object.keys(r).find(k=>k.endsWith(' Offenses')&&suffix(k));return k?r[k]:null};
+    const stName=Object.keys(STATES).find(n=>STATES[n]===state.geo.state);
+    const isUS=k=>k.startsWith('United States'), isState=k=>stName&&k.toLowerCase().startsWith(stName), isAg=k=>!isUS(k)&&!isState(k);
+    const build=j=>({ag:sumYear(pick(j,isAg),yr),agPrev:sumYear(pick(j,isAg),yr-1),st:sumYear(pick(j,isState),yr),us:sumYear(pick(j,isUS),yr)});
+    const pop=(()=>{const p=vc.populations&&vc.populations.population||{};const k=Object.keys(p).find(k=>!k.startsWith('United States')&&!(stName&&k.toLowerCase().startsWith(stName)));if(!k)return null;const vals=Object.values(p[k]).filter(Boolean);return vals.length?vals[vals.length-1]:null})();
+    state.crime={agency:ag,year:yr,violent:build(vc),property:build(pc),pop};
+    if(state.crime.violent.ag==null&&state.crime.property.ag==null) throw new Error(`${ag.agency_name} hasn’t reported ${yr} data to the FBI.`);
+  }catch(e){state.crime={error:e.message==='blocked'?'Crime data service unreachable.':e.message};}
+  renderAll();
+}
+
+/* ---------- grading ---------- */
+function letter(ratio){if(ratio==null)return null;return ratio<=0.5?'A':ratio<=0.8?'B':ratio<=1.15?'C':ratio<=1.6?'D':'F'}
+function crimeGrade(c){
+  const rv=c.violent.ag!=null&&c.violent.us?c.violent.ag/c.violent.us:null;
+  const rp=c.property.ag!=null&&c.property.us?c.property.ag/c.property.us:null;
+  const idx=rv!=null&&rp!=null?0.6*rv+0.4*rp:(rv??rp);
+  return {overall:letter(idx),violent:letter(rv),property:letter(rp),rv,rp,idx};
+}
+window.__crimeGrade=crimeGrade;
+
+/* ---------- render ---------- */
+const need=(what,link,label)=>`<p class="empty">Add a ${what} key in the panel on the left to pull this. <a href="${link}" target="_blank" rel="noopener">${label}</a></p>`;
+const loading='<p class="empty">Loading…</p>';
+const err=m=>`<p class="cstatus err">${esc(m)}</p>`;
+function useBtn(label,fn){return `<button class="btn" type="button" data-use="${fn}">${label}</button>`}
+
+function renderAll(){
+  // crime
+  const c=state.crime, cn=el('cCrime');
+  if(!c) cn.innerHTML='<p class="empty">Pull data for an address to grade its area.</p>';
+  else if(c.loading) cn.innerHTML=loading;
+  else if(c.error) cn.innerHTML=err(c.error);
+  else{
+    const g=crimeGrade(c);
+    const trend=(o)=>o.ag!=null&&o.agPrev?((o.ag/o.agPrev-1)*100):null;
+    const tr=t=>t==null?'':`<span class="${t<=0?'pos':'neg'}">${t<=0?'↓':'↑'} ${Math.abs(t).toFixed(0)}% vs ${c.year-1}</span>`;
+    const rowC=(lab,o,gr,ratio)=>`<tr><td>${lab}</td><td><span class="grade g-${gr||'na'}">${gr||'—'}</span></td><td>${num(o.ag)}</td><td>${num(o.st)}</td><td>${num(o.us)}</td><td>${ratio!=null?ratio.toFixed(2)+'×':'—'}</td><td>${tr(trend(o))}</td></tr>`;
+    cn.innerHTML=`<div class="crime-head"><div class="grade big g-${g.overall||'na'}">${g.overall||'?'}</div>
+      <div><b>${esc(c.agency.agency_name)}</b>${c.pop?` · pop. ${num(c.pop)}`:''}<br>
+      <span class="muted">${c.year} FBI data, ${c.agency.d.toFixed(1)} mi from the address. Grade weights violent crime 60%, property crime 40%, against the national rate.</span></div></div>
+      <div class="scroll"><table class="ctable"><thead><tr><th>Per 100k residents</th><th>Grade</th><th>This area</th><th>State</th><th>U.S.</th><th>vs U.S.</th><th>Trend</th></tr></thead><tbody>
+      ${rowC('Violent crime',c.violent,g.violent,g.rv)}${rowC('Property crime',c.property,g.property,g.rp)}</tbody></table></div>
+      <p class="axis-note">A: under half the U.S. rate · B: under 0.8× · C: about average · D: up to 1.6× · F: worse. This is city-wide (or county-wide) data from the agency that polices the address; blocks within a city vary a lot, so drive the street at night before you buy.</p>`;
+  }
+  // rent comps
+  const r=state.rent, rn=el('cRent');
+  if(!r) rn.innerHTML='<p class="empty">Long-term rent estimate and nearby rental listings.</p>';
+  else if(r.need) rn.innerHTML=need('RentCast','https://www.rentcast.io/api','Get a free key (50 lookups a month)');
+  else if(r.loading) rn.innerHTML=loading;
+  else if(r.error) rn.innerHTML=err(r.error);
+  else {
+    const cs=r.comparables||[];
+    rn.innerHTML=`<div class="est"><span class="k">Rent estimate</span><span class="v">${$(r.rent)}/mo</span><span class="muted">Range ${$(r.rentRangeLow)} – ${$(r.rentRangeHigh)} · ${cs.length} comps</span></div>
+      <div class="use-row">${useBtn(`Use ${$(r.rent)} in Buy a rental`,'rent')}${useBtn('Use as long-term rent in Airbnb','ltr')}</div>
+      ${compTable(cs,'Rent')}`;
+  }
+  // sale comps
+  const v=state.value, vn=el('cValue');
+  if(!v) vn.innerHTML='<p class="empty">Value estimate and recent nearby sales or listings.</p>';
+  else if(v.need) vn.innerHTML=need('RentCast','https://www.rentcast.io/api','Get a free key (50 lookups a month)');
+  else if(v.loading) vn.innerHTML=loading;
+  else if(v.error) vn.innerHTML=err(v.error);
+  else {
+    const cs=v.comparables||[];
+    vn.innerHTML=`<div class="est"><span class="k">Value estimate</span><span class="v">${$(v.price)}</span><span class="muted">Range ${$(v.priceRangeLow)} – ${$(v.priceRangeHigh)} · ${cs.length} comps${subj.sqft?` · ${$(v.price/subj.sqft)}/sf`:''}</span></div>
+      <div class="use-row">${useBtn('Use as purchase price','price')}${useBtn('Use as after-repair value','arv')}${useBtn('Use as finished value in build','build')}</div>
+      ${compTable(cs,'Price')}`;
+  }
+  // STR comps
+  const s=state.str, sn=el('cStr');
+  if(!s) sn.innerHTML='<p class="empty">Nightly rate, occupancy and revenue for similar Airbnb listings nearby.</p>';
+  else if(s.need) sn.innerHTML=need('AirROI','https://www.airroi.com/api','Get a key (pay per lookup)');
+  else if(s.loading) sn.innerHTML=loading;
+  else if(s.error) sn.innerHTML=err(s.error);
+  else {
+    const list=(s.comparables||s.listings||s.results||[]).map(normSTR);
+    if(!list.length){sn.innerHTML='<p class="empty">No similar short-term rentals found nearby.</p>';}
+    else{
+      const adr=median(list.map(x=>x.adr)), occ=median(list.map(x=>x.occ)), rev=median(list.map(x=>x.rev));
+      state.strMed={adr,occ};
+      sn.innerHTML=`<div class="est-row"><div class="est"><span class="k">Median nightly rate</span><span class="v">${$(adr)}</span></div>
+        <div class="est"><span class="k">Median occupancy</span><span class="v">${occ!=null?num(occ*100)+'%':'—'}</span></div>
+        <div class="est"><span class="k">Median revenue</span><span class="v">${$(rev)}/yr</span></div></div>
+        <div class="use-row">${useBtn('Use rate & occupancy in Airbnb','str')}</div>
+        <div class="scroll"><table class="ctable"><thead><tr><th>Listing</th><th>Beds</th><th>Nightly</th><th>Occupancy</th><th>Revenue/yr</th><th>Distance</th></tr></thead><tbody>
+        ${list.slice(0,25).map(x=>`<tr><td class="nm">${esc(x.name)}</td><td>${num(x.beds)}</td><td>${$(x.adr)}</td><td>${x.occ!=null?num(x.occ*100)+'%':'—'}</td><td>${$(x.rev)}</td><td>${x.dist!=null?num(x.dist,1)+' mi':'—'}</td></tr>`).join('')}
+        </tbody></table></div>`;
+    }
+  }
+  renderMap();
+}
+function normSTR(x){
+  const g=(o,ks)=>{for(const k of ks){const v=k.split('.').reduce((a,p)=>a&&a[p],o); if(v!=null&&v!=='') return +v;}return null};
+  let occ=g(x,['occupancy_rate','occupancy','performance.occupancy','ttm_occupancy','metrics.occupancy']);
+  if(occ!=null&&occ>1) occ/=100;
+  return {name:x.name||x.title||x.listing_name||('Listing '+(x.listing_id||x.id||'')),
+    beds:g(x,['bedrooms','listing_info.bedrooms','property_details.bedrooms']),
+    adr:g(x,['adr','average_daily_rate','ttm_avg_rate','performance.adr','metrics.adr']),
+    occ, rev:g(x,['annual_revenue','revenue','ttm_revenue','performance.revenue','metrics.revenue']),
+    dist:g(x,['distance_miles','distance']),
+    lat:g(x,['latitude','location.latitude','coordinates.latitude']),lng:g(x,['longitude','location.longitude','coordinates.longitude'])};
+}
+function compTable(cs,label){
+  if(!cs.length) return '<p class="empty">No comparables returned.</p>';
+  return `<div class="scroll"><table class="ctable"><thead><tr><th>Address</th><th>Bd/Ba</th><th>Sq ft</th><th>${label}</th><th>$/sf</th><th>Distance</th><th>Days old</th></tr></thead><tbody>`+
+    cs.map(x=>`<tr><td class="nm">${esc(x.formattedAddress||x.addressLine1)}</td><td>${num(x.bedrooms)}/${num(x.bathrooms,1)}</td><td>${num(x.squareFootage)}</td><td>${$(x.price)}</td><td>${x.squareFootage?$(x.price/x.squareFootage):'—'}</td><td>${num(x.distance,2)} mi</td><td>${num(x.daysOld)}</td></tr>`).join('')+'</tbody></table></div>';
+}
+document.addEventListener('click',e=>{
+  const u=e.target.dataset&&e.target.dataset.use; if(!u) return;
+  const r=state.rent, v=state.value;
+  const go=h=>{location.hash=h;};
+  if(u==='rent'&&r&&r.rent){window.__applyRental&&window.__applyRental({rent:Math.round(r.rent)});go('rental');}
+  if(u==='ltr'&&r&&r.rent){window.__applySTR&&window.__applySTR({ltrRent:Math.round(r.rent)});go('str');}
+  if(u==='price'&&v&&v.price){window.__applyRental&&window.__applyRental({price:Math.round(v.price)});go('rental');}
+  if(u==='arv'&&v&&v.price){window.__applyRental&&window.__applyRental({arv:Math.round(v.price)});go('rental');}
+  if(u==='build'&&v&&v.price){window.__applyBuild&&window.__applyBuild({salePrice:Math.round(v.price)});go('build');}
+  if(u==='str'&&state.strMed){const p={}; if(state.strMed.adr) p.adr=Math.round(state.strMed.adr); if(state.strMed.occ!=null) p.occ=Math.round(state.strMed.occ*100); window.__applySTR&&window.__applySTR(p);go('str');}
+});
+
+/* ---------- map (Leaflet, loaded on demand) ---------- */
+let L=null, map=null, layer=null, leafletFailed=false;
+function loadLeaflet(){
+  if(window.L) return Promise.resolve(window.L);
+  return new Promise((ok,no)=>{
+    const css=document.createElement('link'); css.rel='stylesheet'; css.href='https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css'; document.head.appendChild(css);
+    const s=document.createElement('script'); s.src='https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js'; s.onload=()=>ok(window.L); s.onerror=no; document.head.appendChild(s);
+  });
+}
+async function renderMap(){
+  const box=el('cMap'), g=state.geo;
+  if(!g||blocked||leafletFailed){box.hidden=true; return;}
+  box.hidden=false;
+  try{L=await loadLeaflet();}catch(e){leafletFailed=true; box.hidden=true; return;}
+  if(!map){
+    map=L.map('cMapInner',{scrollWheelZoom:false}).setView([g.lat,g.lng],14);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap contributors'}).addTo(map);
+  }
+  if(layer) layer.remove();
+  layer=L.layerGroup().addTo(map);
+  const css=getComputedStyle(document.documentElement), tok=n=>css.getPropertyValue(n).trim();
+  const gradeColor={A:tok('--good'),B:tok('--good'),C:tok('--warn'),D:tok('--bad'),F:tok('--bad')};
+  const c=state.crime&&!state.crime.error&&!state.crime.loading?crimeGrade(state.crime):null;
+  const pts=[[g.lat,g.lng]];
+  if(c&&c.overall) L.circle([g.lat,g.lng],{radius:1609,color:gradeColor[c.overall],fillColor:gradeColor[c.overall],fillOpacity:.12,weight:1.5}).bindTooltip(`Area crime grade ${c.overall}`).addTo(layer);
+  const dot=(lat,lng,color,tip,r=6)=>{L.circleMarker([lat,lng],{radius:r,color:'#fff',weight:1.5,fillColor:color,fillOpacity:1}).bindTooltip(tip).addTo(layer); pts.push([lat,lng]);};
+  ((state.rent&&state.rent.comparables)||[]).forEach(x=>x.latitude&&dot(x.latitude,x.longitude,tok('--accent'),`Rent ${$(x.price)} · ${esc(x.formattedAddress||'')}`));
+  ((state.value&&state.value.comparables)||[]).forEach(x=>x.latitude&&dot(x.latitude,x.longitude,tok('--brass'),`Sale ${$(x.price)} · ${esc(x.formattedAddress||'')}`));
+  ((state.str&&(state.str.comparables||state.str.listings))||[]).map(normSTR).forEach(x=>x.lat&&dot(x.lat,x.lng,tok('--cat-fin'),`Airbnb ${$(x.adr)}/night · ${esc(x.name)}`));
+  if(state.crime&&state.crime.agency) dot(state.crime.agency.latitude,state.crime.agency.longitude,tok('--muted'),esc(state.crime.agency.agency_name),5);
+  L.marker([g.lat,g.lng]).bindTooltip('The property').addTo(layer);
+  if(pts.length>1) map.fitBounds(pts,{padding:[30,30],maxZoom:15}); else map.setView([g.lat,g.lng],14);
+  setTimeout(()=>map.invalidateSize(),50);
+}
+window.addEventListener('hashchange',()=>{if(location.hash==='#comps'&&map) setTimeout(()=>map.invalidateSize(),50);});
+renderAll();
 })();
 </script>
 </body>

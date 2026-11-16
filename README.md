@@ -1,6 +1,6 @@
 # Rental Deal Desk
 
-A single-page underwriting tool for single-family and multifamily real estate, with two calculators: **Buy a rental** and **Ground-up build**. Enter a deal and get an operator's read on it instantly.
+A single-page underwriting tool for single-family and multifamily real estate, with three calculators (**Buy a rental**, **Airbnb / short-term** and **Ground-up build**) and a **Live comps & crime** lookup. Enter a deal and get an operator's read on it instantly.
 
 **Live tool:** https://sleepeq-null.github.io/rental-deal-desk/
 
@@ -16,6 +16,30 @@ A single-page underwriting tool for single-family and multifamily real estate, w
 - **Sensitivity grid**: monthly cash flow across ±10% price and rent
 - **Hold-period projection**: year-by-year rent, NOI, debt service, cash flow, value, loan balance, equity
 - **Saved deals**: compare properties side by side (stored in your browser)
+
+## Airbnb / short-term
+
+Open it at https://sleepeq-null.github.io/rental-deal-desk/#str
+
+- Revenue from nightly rate, occupancy, average stay and per-stay cleaning fees
+- Costs that only short-term rentals have: platform fees, cleaners per turnover, supplies, co-host fee, utilities and internet, pricing software, STR permit, furniture replacement
+- Break-even occupancy, RevPAR, gross revenue ÷ price, and how it compares with renting long-term
+- Short-term rental checklist with a higher bar than a long-term rental
+- Sensitivity grid across nightly rate and occupancy, plus a hold-period projection with IRR
+
+## Live comps & crime
+
+Open it at https://sleepeq-null.github.io/rental-deal-desk/#comps
+
+Enter an address and pull:
+
+- **Rent comps and rent estimate** from [RentCast](https://www.rentcast.io/api) (free key, 50 lookups a month)
+- **Sale comps and value estimate** from RentCast
+- **Airbnb comps**: nightly rate, occupancy and revenue for similar nearby listings from [AirROI](https://www.airroi.com/api) (paid per lookup)
+- **Area crime grade A–F**: violent and property crime per 100,000 residents from the [FBI Crime Data API](https://api.data.gov/signup/), compared with the state and U.S. rates, with the year-over-year trend. Uses a shared demo key (10 lookups an hour) unless you add your own free key.
+- **Map** of the property, comps, and a 1-mile ring colored by the crime grade
+
+One click sends a comp result into the other calculators (rent, purchase price, after-repair value, finished value, nightly rate and occupancy). API keys are saved in your browser only and sent only to their own service. Crime data is city-wide or county-wide, not block by block.
 
 ## Ground-up build
 

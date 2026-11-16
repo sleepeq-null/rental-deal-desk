@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="description" content="Underwrite single-family and multifamily rentals: cash flow, cap rate, DSCR, IRR, BRRRR refi, max offer price, and sensitivity.">
+<meta name="description" content="Underwrite rental purchases and ground-up builds: cash flow, cap rate, DSCR, IRR, BRRRR, build budget, draw schedule, and sell vs. refi-and-hold exits.">
 <style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
 <title>Rental Deal Desk</title>
 <meta name="claude:viewport-fit-sides" content="cover">
@@ -15,6 +15,7 @@
 :root{
   --bg:#ECF0EE; --surface:#FFFFFF; --sunk:#F5F8F6; --ink:#14202A; --muted:#5A6A71; --line:#D3DBD8;
   --accent:#1D6A55; --accent-soft:#DCEDE6; --accent-ink:#FFFFFF; --brass:#A57720; --brass-soft:#F3E7CD;
+  --cat-land:#A57720; --cat-hard:#1D6A55; --cat-cont:#86BFAA; --cat-soft:#4E7898; --cat-fin:#8A5A8F; --cat-carry:#A3AEB2;
   --good:#1D7A4B; --good-soft:#DDF1E5; --warn:#A8730C; --warn-soft:#F7EBCF; --bad:#B0372D; --bad-soft:#F7DEDB;
   --f-display:"Archivo","Arial Narrow",system-ui,sans-serif;
   --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
@@ -23,10 +24,12 @@
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
   --bg:#0E1417; --surface:#162024; --sunk:#11191C; --ink:#E4EBE9; --muted:#93A4A9; --line:#29363B;
   --accent:#4DB292; --accent-soft:#18352C; --accent-ink:#06120E; --brass:#D9AA4C; --brass-soft:#3A2F17;
+  --cat-land:#D9AA4C; --cat-hard:#4DB292; --cat-cont:#2C6E5A; --cat-soft:#7FA8C9; --cat-fin:#C18BC6; --cat-carry:#5F6E73;
   --good:#4CC488; --good-soft:#143326; --warn:#E3B34B; --warn-soft:#3A2E12; --bad:#EC7A6E; --bad-soft:#3D1D1A; color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#0E1417; --surface:#162024; --sunk:#11191C; --ink:#E4EBE9; --muted:#93A4A9; --line:#29363B;
   --accent:#4DB292; --accent-soft:#18352C; --accent-ink:#06120E; --brass:#D9AA4C; --brass-soft:#3A2F17;
+  --cat-land:#D9AA4C; --cat-hard:#4DB292; --cat-cont:#2C6E5A; --cat-soft:#7FA8C9; --cat-fin:#C18BC6; --cat-carry:#5F6E73;
   --good:#4CC488; --good-soft:#143326; --warn:#E3B34B; --warn-soft:#3A2E12; --bad:#EC7A6E; --bad-soft:#3D1D1A; color-scheme:dark}
 
 *{box-sizing:border-box}
@@ -158,6 +161,27 @@ table{border-collapse:collapse;width:100%}
 .saved td .btn{padding:3px 8px;font-size:12px;font-family:var(--f-body)}
 .empty{color:var(--muted);font-size:13px;margin:0}
 .foot{color:var(--muted);font-size:12px;margin:4px 0 0;max-width:80ch}
+
+/* Tabs + build view */
+header.top{margin-bottom:0}
+.tabs{display:flex;gap:4px;margin:0 0 20px;border-bottom:1px solid var(--line);overflow-x:auto}
+.tabs a{padding:12px 14px 10px;color:var(--muted);text-decoration:none;font-family:var(--f-display);font-stretch:85%;font-weight:700;font-size:14px;letter-spacing:.06em;text-transform:uppercase;border-bottom:3px solid transparent;margin-bottom:-1px;white-space:nowrap}
+.tabs a:hover{color:var(--ink)}
+.tabs a[aria-current="page"]{color:var(--ink);border-bottom-color:var(--accent)}
+.tabs a:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.exits{min-width:540px;font-size:13px}
+.exits th{text-align:left;font-family:var(--f-display);font-stretch:85%;font-size:14px;letter-spacing:.04em;text-transform:uppercase;padding:8px 10px;border-bottom:2px solid var(--ink);white-space:nowrap}
+.exits td{padding:8px 10px;border-bottom:1px solid var(--line);font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.exits td:first-child{font-family:var(--f-body);color:var(--muted);white-space:nowrap}
+.exits .best{background:var(--accent-soft)}
+.exits th .chip{margin-left:6px;vertical-align:2px;font-family:var(--f-body)}
+.checks li.chk-h{display:block;padding:12px 0 4px;border-bottom:1px solid var(--line);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.checks li.chk-h:first-child{padding-top:0}
+.checks li.chk-h em{font-style:normal;color:var(--accent);margin-left:6px;letter-spacing:.04em}
+.stack{display:flex;height:22px;border-radius:5px;overflow:hidden;margin:2px 0 12px;gap:2px}
+.stack span{display:block;min-width:3px}
+.sw{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:8px;vertical-align:-1px}
+.proj tr.exitm td{color:var(--muted)}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
@@ -166,17 +190,24 @@ table{border-collapse:collapse;width:100%}
   <header class="top">
     <div class="brand">
       <h1>Rental Deal Desk</h1>
-      <p>Underwrite a single-family or multifamily rental the way an operator would: year-one pro forma, the ratios lenders check, a full hold-period return, and the most you should pay.</p>
+      <p>Underwrite a rental purchase or a ground-up build the way an operator would: the pro forma, the ratios lenders check, every exit, and the most you should pay.</p>
     </div>
     <div class="presets">
       <span class="lbl">Load example</span>
-      <button class="btn" type="button" data-preset="sfr">Single-family</button>
-      <button class="btn" type="button" data-preset="quad">Fourplex</button>
-      <button class="btn" type="button" data-preset="brrrr">BRRRR</button>
+      <button class="btn" type="button" data-preset="sfr" data-view="rental">Single-family</button>
+      <button class="btn" type="button" data-preset="quad" data-view="rental">Fourplex</button>
+      <button class="btn" type="button" data-preset="brrrr" data-view="rental">BRRRR</button>
+      <button class="btn" type="button" data-bpreset="spec" data-view="build" hidden>Spec house</button>
+      <button class="btn" type="button" data-bpreset="quad" data-view="build" hidden>Fourplex</button>
     </div>
   </header>
 
-  <div class="grid">
+  <nav class="tabs" aria-label="Calculator">
+    <a href="#rental" aria-current="page">Buy a rental</a>
+    <a href="#build">Ground-up build</a>
+  </nav>
+
+  <div class="grid" id="view-rental">
     <aside class="ledger" aria-label="Deal inputs">
       <p class="example-note" id="exampleNote">These are example numbers. Replace them with your deal; results update as you type.</p>
       <form id="form" autocomplete="off"></form>
@@ -245,6 +276,58 @@ table{border-collapse:collapse;width:100%}
       </section>
 
       <p class="foot">Assumptions: the property is rented from month one (rehab time isn't modeled), percentage-based expenses are taken on rent collected after vacancy, property value starts at the after-repair value and grows monthly at the appreciation rate, and the sale happens at the end of the final year net of selling costs. Taxes on income and sale are not included. This is an underwriting aid, not financial advice.</p>
+    </main>
+  </div>
+
+  <div class="grid" id="view-build" hidden>
+    <aside class="ledger" aria-label="Build inputs">
+      <p class="example-note" id="bExampleNote">These are example numbers. Replace them with your project; results update as you type.</p>
+      <form id="bform" autocomplete="off"></form>
+    </aside>
+
+    <main class="results">
+      <section class="verdict" id="bVerdict" data-v="warn" aria-live="polite">
+        <div class="stamp" id="bStamp">—</div>
+        <div class="why" id="bWhy"></div>
+        <div class="offer" id="bOffer"></div>
+      </section>
+
+      <section class="kpis" id="bKpis"></section>
+
+      <section class="panel">
+        <h2>Exit strategies side by side</h2>
+        <p class="sub">Same build, two ways out: sell the finished product, or rent it, refinance the construction loan, and hold.</p>
+        <div class="scroll"><table class="exits" id="bExits"></table></div>
+      </section>
+
+      <div class="two">
+        <section class="panel">
+          <h2>Builder checklist</h2>
+          <p class="sub">The verdict uses the construction checks plus the checks for whichever exit returns more.</p>
+          <ul class="checks" id="bChecks"></ul>
+        </section>
+        <section class="panel">
+          <h2>Project budget</h2>
+          <p class="sub">Everything it takes to get from lot purchase to exit.</p>
+          <div id="bStack"></div>
+          <table class="pf" id="bBudget"></table>
+        </section>
+      </div>
+
+      <section class="panel">
+        <h2>Sensitivity: profit if sold</h2>
+        <p class="sub">Builds go over budget and markets move. This shows your profit if the build cost or the finished value is off by up to 10%. Your current case is outlined.</p>
+        <div class="scroll"><table class="sens" id="bSens"></table></div>
+        <p class="axis-note">Columns: finished value. Rows: build cost per square foot.</p>
+      </section>
+
+      <section class="panel">
+        <h2>Draw schedule</h2>
+        <p class="sub">Your equity covers the lot and early costs first. After that the lender funds monthly draws, and interest is added to the loan balance.</p>
+        <div class="scroll"><table class="proj" id="bDraws"></table></div>
+      </section>
+
+      <p class="foot">Assumptions: the lot, plans and permits are paid at closing; hard costs, contingency and other soft costs are spent evenly over the build; the loan is a percentage of costs before financing; interest is added to the loan balance until it is paid off at sale or refinance; no rental income comes in during the lease-up months. Taxes on income and sale are not included. This is an underwriting aid, not financial advice.</p>
     </main>
   </div>
 </div>
@@ -623,6 +706,348 @@ document.getElementById('savedWrap').addEventListener('click',e=>{
 buildForm(); fillForm(); render(); renderSaved();
 document.getElementById('exampleNote').hidden=!isExample;
 window.__analyze=analyze;
+})();
+</script>
+<script>
+(function(){
+const BP = {
+  spec:{propType:'sfr',units:1,sqft:2000,land:60000,landClosePct:3,costPsf:145,siteWork:30000,contPct:10,
+        ae:12000,permits:15000,otherSoftPct:3,carry:450,buildMonths:8,exitMonths:3,ltc:80,cRate:10.5,cPoints:1.5,
+        salePrice:625000,sellPct:6,targetMargin:20,
+        rent:3100,otherInc:0,vacancy:5,taxes:5200,insurance:1800,utilities:0,maint:5,capex:3,mgmt:8,
+        permLtv:75,dscrMin:1.25,permRate:7,permTerm:30,refiCostPct:2,marketCap:6,hold:7,appr:3,rentGrowth:3,expGrowth:2.5},
+  quad:{propType:'multi',units:4,sqft:4400,land:120000,landClosePct:3,costPsf:150,siteWork:60000,contPct:10,
+        ae:25000,permits:40000,otherSoftPct:3,carry:900,buildMonths:11,exitMonths:4,ltc:75,cRate:10,cPoints:1,
+        salePrice:1250000,sellPct:5,targetMargin:20,
+        rent:2250,otherInc:150,vacancy:5,taxes:9500,insurance:4800,utilities:300,maint:5,capex:3,mgmt:8,
+        permLtv:75,dscrMin:1.25,permRate:6.5,permTerm:30,refiCostPct:2,marketCap:5.5,hold:10,appr:3,rentGrowth:3,expGrowth:2.5}
+};
+const BG = [
+  {t:'Project', f:[
+    {k:'propType', type:'seg', opts:[['sfr','Single-family'],['multi','Multifamily']]},
+    {k:'units', l:'Units', suf:'doors', show:s=>s.propType==='multi'},
+    {k:'sqft', l:'Finished square feet', suf:'sf', wide:s=>s.propType!=='multi'},
+  ]},
+  {t:'Land', f:[
+    {k:'land', l:'Lot price', pre:'$'},
+    {k:'landClosePct', l:'Closing costs', suf:'%'},
+  ]},
+  {t:'Hard costs', f:[
+    {k:'costPsf', l:'Build cost', pre:'$', suf:'/sf'},
+    {k:'siteWork', l:'Site work & utilities', pre:'$'},
+    {k:'contPct', l:'Contingency', suf:'% of hard', wide:true},
+    {hint:'Site work covers clearing, grading, driveway, and water, sewer or septic, and power hookups.'},
+  ]},
+  {t:'Soft costs', f:[
+    {k:'ae', l:'Plans & engineering', pre:'$'},
+    {k:'permits', l:'Permits & impact fees', pre:'$'},
+    {k:'otherSoftPct', l:'Other soft costs', suf:'% of hard'},
+    {k:'carry', l:'Carrying costs', pre:'$', suf:'/mo'},
+    {hint:'Other soft: builder’s risk insurance, survey, legal. Carrying: taxes, insurance and utilities while you build and sell.'},
+  ]},
+  {t:'Timeline', f:[
+    {k:'buildMonths', l:'Build time', suf:'months'},
+    {k:'exitMonths', l:'Sale or lease-up', suf:'months'},
+  ]},
+  {t:'Construction loan', f:[
+    {k:'ltc', l:'Loan-to-cost', suf:'%'},
+    {k:'cRate', l:'Interest rate', suf:'%'},
+    {k:'cPoints', l:'Points', suf:'% of loan', wide:true},
+    {hint:'Your equity goes in first, then the lender funds draws. Interest is added to the loan balance (interest reserve).'},
+  ]},
+  {t:'Exit 1: build to sell', f:[
+    {k:'salePrice', l:'Finished value', pre:'$', wide:true},
+    {k:'sellPct', l:'Selling costs', suf:'%'},
+    {k:'targetMargin', l:'Target margin', suf:'%'},
+    {hint:'Finished value is also what the refi appraisal uses in exit 2. Target margin sets your max lot price.'},
+  ]},
+  {t:'Exit 2: rent it out', f:[
+    {k:'rent', l:s=>s.propType==='multi'?'Rent per unit':'Monthly rent', pre:'$', suf:'/mo'},
+    {k:'otherInc', l:'Other income', pre:'$', suf:'/mo'},
+    {k:'vacancy', l:'Vacancy', suf:'%'},
+    {k:'utilities', l:'Owner utilities', pre:'$', suf:'/mo'},
+    {k:'taxes', l:'Property taxes', pre:'$', suf:'/yr'},
+    {k:'insurance', l:'Insurance', pre:'$', suf:'/yr'},
+    {k:'maint', l:'Repairs', suf:'%'},
+    {k:'capex', l:'CapEx reserve', suf:'%'},
+    {k:'mgmt', l:'Management', suf:'%', wide:true},
+    {hint:'New construction runs lower repairs and CapEx than an older rental. Taxes reset to the finished value.'},
+  ]},
+  {t:'Exit 2: refi & hold', f:[
+    {k:'permLtv', l:'Refi loan-to-value', suf:'%'},
+    {k:'dscrMin', l:'Lender min. DSCR', suf:'×'},
+    {k:'permRate', l:'Refi rate', suf:'%'},
+    {k:'permTerm', l:'Refi term', suf:'yrs'},
+    {k:'refiCostPct', l:'Refi costs', suf:'% of loan'},
+    {k:'marketCap', l:'Market cap rate', suf:'%'},
+    {k:'hold', l:'Hold period', suf:'yrs'},
+    {k:'appr', l:'Appreciation', suf:'%/yr'},
+    {k:'rentGrowth', l:'Rent growth', suf:'%/yr'},
+    {k:'expGrowth', l:'Expense growth', suf:'%/yr'},
+    {hint:'The refi loan is the smaller of the LTV amount and what the rent supports at the lender’s DSCR.'},
+  ]},
+];
+
+const KEY='deal-desk:build:v1';
+const store={get(k){try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+let S=Object.assign({},BP.spec,store.get(KEY)||{});
+let isEx=!store.get(KEY);
+const bform=document.getElementById('bform'), note=document.getElementById('bExampleNote');
+const lab=f=>typeof f.l==='function'?f.l(S):f.l;
+
+function buildForm(){
+  bform.innerHTML=BG.map((g,gi)=>`<section class="group"><h3>${g.t}</h3><div class="fields">${g.f.map((f,fi)=>{
+    if(f.hint) return `<p class="hint">${f.hint}</p>`;
+    if(f.type==='seg') return `<div class="seg" role="radiogroup" aria-label="Project type">${f.opts.map(([v,l])=>`<label><input type="radio" name="b-${f.k}" id="b-${f.k}-${v}" value="${v}" data-k="${f.k}">${l}</label>`).join('')}</div>`;
+    return `<label class="field" for="b-${f.k}" data-g="${gi}" data-f="${fi}"><span class="lbl">${lab(f)}</span><span class="inp">${f.pre?`<span>${f.pre}</span>`:''}<input id="b-${f.k}" type="number" step="any" inputmode="decimal" data-k="${f.k}">${f.suf?`<span>${f.suf}</span>`:''}</span></label>`;
+  }).join('')}</div></section>`).join('');
+}
+function fillForm(){
+  bform.querySelectorAll('[data-k]').forEach(el=>{
+    const k=el.dataset.k;
+    if(el.type==='radio') el.checked=S[k]===el.value;
+    else if(document.activeElement!==el) el.value=S[k];
+  });
+  sync();
+}
+function sync(){
+  bform.querySelectorAll('[data-g]').forEach(el=>{
+    const f=BG[+el.dataset.g].f[+el.dataset.f];
+    el.hidden=f.show?!f.show(S):false;
+    const w=typeof f.wide==='function'?f.wide(S):!!f.wide; el.classList.toggle('wide',w);
+    if(typeof f.l==='function') el.querySelector('.lbl').textContent=lab(f);
+  });
+}
+bform.addEventListener('input',e=>{
+  const el=e.target,k=el.dataset.k; if(!k) return;
+  if(el.type==='radio') S[k]=el.value; else {const v=parseFloat(el.value); S[k]=isFinite(v)?v:0;}
+  if(isEx){isEx=false; note.hidden=true;}
+  store.set(KEY,S); sync(); render();
+});
+bform.addEventListener('submit',e=>e.preventDefault());
+document.querySelectorAll('[data-bpreset]').forEach(b=>b.addEventListener('click',()=>{
+  S=Object.assign({},BP[b.dataset.bpreset]); isEx=true; note.hidden=false;
+  try{localStorage.removeItem(KEY)}catch(e){}
+  fillForm(); render();
+}));
+
+/* ---------- math ---------- */
+function pmt(rate,n,pv){if(pv<=0||n<=0)return 0;const r=rate/1200;if(r===0)return pv/n;return pv*r/(1-Math.pow(1+r,-n));}
+function irrM(flows){
+  const npv=r=>{let a=0,d=1;for(let i=0;i<flows.length;i++){a+=flows[i]/d;d*=(1+r);}return a};
+  let lo=-0.5,hi=0.5,flo=npv(lo),fhi=npv(hi);
+  if(!isFinite(flo)||!isFinite(fhi)||flo*fhi>0) return null;
+  for(let i=0;i<200;i++){const mid=(lo+hi)/2,fm=npv(mid);if(flo*fm<=0){hi=mid;}else{lo=mid;flo=fm;}if(hi-lo<1e-10)break;}
+  return Math.pow(1+(lo+hi)/2,12)-1;
+}
+function analyzeBuild(s){
+  const units=s.propType==='sfr'?1:Math.max(1,Math.round(s.units)||1);
+  const sqft=Math.max(1,s.sqft);
+  const landClose=s.land*s.landClosePct/100;
+  const vertical=sqft*s.costPsf, hard=vertical+s.siteWork, cont=hard*s.contPct/100, otherSoft=hard*s.otherSoftPct/100;
+  const soft=s.ae+s.permits+otherSoft;
+  const base=s.land+landClose+hard+cont+soft;
+  const loanCommit=base*Math.min(100,Math.max(0,s.ltc))/100, fees=loanCommit*s.cPoints/100;
+  const B=Math.max(1,Math.round(s.buildMonths)||1), X=Math.max(0,Math.round(s.exitMonths)||0), T=B+X;
+  const upfront=s.land+landClose+s.ae+s.permits, perMonth=(hard+cont+otherSoft)/B;
+  let eqLeft=base-loanCommit, bal=0, interestTot=0;
+  const eq=new Array(T+1).fill(0), draws=[];
+  eq[0]-=fees;
+  for(let m=0;m<=T;m++){
+    const spend=m===0?upfront:(m<=B?perMonth:0);
+    const interest=m>=1?bal*s.cRate/1200:0; bal+=interest; interestTot+=interest;
+    const eqPart=Math.min(spend,Math.max(0,eqLeft)); eqLeft-=eqPart;
+    const draw=spend-eqPart; bal+=draw;
+    const carry=m>=1?s.carry:0;
+    eq[m]-=eqPart+carry;
+    draws.push({m,spend,eqPart,draw,interest,carry,bal});
+  }
+  const carryTot=s.carry*T;
+  const equityIn=-eq.reduce((a,b)=>a+b,0);
+  const totalCost=base+fees+interestTot+carryTot;
+  const value=s.salePrice;
+
+  // Exit 1: sell
+  const netSale=value*(1-s.sellPct/100), sellCash=netSale-bal;
+  const fS=eq.slice(); fS[T]+=sellCash;
+  const profit=netSale-totalCost;
+  const sell={cashBack:sellCash,profit,margin:totalCost>0?profit/totalCost:0,irr:irrM(fS),
+    em:equityIn>0?sellCash/equityIn:Infinity,breakeven:totalCost/Math.max(.01,1-s.sellPct/100)};
+
+  // Exit 2: refi & hold
+  const gsrM=units*s.rent+s.otherInc;
+  const ops=yi=>{const rf=Math.pow(1+s.rentGrowth/100,yi),ef=Math.pow(1+s.expGrowth/100,yi);
+    const gsr=gsrM*12*rf,vac=gsr*s.vacancy/100,egi=gsr-vac,fixed=(s.taxes+s.insurance+s.utilities*12)*ef,pctE=egi*(s.maint+s.capex+s.mgmt)/100;
+    return {gsr,vac,egi,fixed,pctE,opex:fixed+pctE,noi:egi-fixed-pctE}};
+  const y1=ops(0);
+  const incomeValue=s.marketCap>0?y1.noi/(s.marketCap/100):0;
+  const n=Math.max(1,s.permTerm)*12, r=s.permRate/1200;
+  const ltvLoan=value*s.permLtv/100;
+  const annuity=r>0?(1-Math.pow(1+r,-n))/r:n;
+  const dscrLoan=s.dscrMin>0?Math.max(0,y1.noi/s.dscrMin/12*annuity):Infinity;
+  const perm=Math.max(0,Math.min(ltvLoan,dscrLoan)), sizedBy=dscrLoan<ltvLoan?'DSCR':'LTV';
+  const permPay=pmt(s.permRate,n,perm);
+  const refiCost=perm*s.refiCostPct/100, cashOut=perm-bal-refiCost;
+  const H=Math.min(40,Math.max(1,Math.round(s.hold)||1));
+  const fR=eq.slice(); fR[T]+=cashOut;
+  let pb=perm, saleNet=0;
+  for(let m=1;m<=H*12;m++){
+    const o=ops(Math.floor((m-1)/12)); let ds=0;
+    if(pb>0.005){const it=pb*r; ds=Math.min(permPay,pb+it); pb-=ds-it;}
+    let f=o.noi/12-ds;
+    if(m===H*12){saleNet=value*Math.pow(1+s.appr/100,H)*(1-s.sellPct/100)-pb; f+=saleNet;}
+    fR.push(f);
+  }
+  const cf1=y1.noi-permPay*12, cashLeft=equityIn-cashOut, sumR=fR.reduce((a,b)=>a+b,0);
+  const yoc=totalCost>0?y1.noi/totalCost:0;
+  const hold={perm,sizedBy,ltvLoan,dscrLoan,permPay,refiCost,cashOut,cashLeft,cf1,monthlyCF:cf1/12,
+    coc:cashLeft>0?cf1/cashLeft:Infinity,dscr:permPay>0?y1.noi/(permPay*12):Infinity,yoc,spread:yoc-s.marketCap/100,
+    irr:irrM(fR),em:equityIn>0?(sumR+equityIn)/equityIn:Infinity,profit:sumR,H,y1,incomeValue,saleNet};
+  return {units,sqft,landClose,vertical,hard,cont,otherSoft,soft,base,loanCommit,fees,interestTot,carryTot,totalCost,
+    equityIn,loanPayoff:bal,B,X,T,draws,sell,hold,value};
+}
+function maxLand(s){
+  const t=s.targetMargin/100, f=l=>analyzeBuild(Object.assign({},s,{land:l})).sell.margin;
+  if(f(0)<t) return null;
+  let lo=0, hi=Math.max(s.land*4,s.salePrice);
+  if(f(hi)>=t) return hi;
+  for(let i=0;i<50;i++){const mid=(lo+hi)/2; if(f(mid)>=t) lo=mid; else hi=mid;}
+  return Math.floor(lo/1000)*1000;
+}
+
+/* ---------- format ---------- */
+const $=n=>(n<0?'−$':'$')+Math.abs(Math.round(n)).toLocaleString('en-US');
+const $k=n=>{const a=Math.abs(n),sg=n<0?'−':'';return a>=1e6?sg+'$'+(a/1e6).toFixed(a>=1e7?1:2)+'M':a>=1e3?sg+'$'+Math.round(a/1e3)+'k':sg+'$'+Math.round(a)};
+const pct=(n,d=1)=>n==null?'n/a':!isFinite(n)?'∞':(n<0?'−':'')+Math.abs(n*100).toFixed(d)+'%';
+const x2=n=>!isFinite(n)?'No debt':n.toFixed(2)+'×';
+const sgn=n=>n>=0?'pos':'neg';
+const grade=(v,p,w,hi=true)=>hi?(v>=p?'pass':v>=w?'warn':'fail'):(v<=p?'pass':v<=w?'warn':'fail');
+
+/* ---------- render ---------- */
+function render(){
+  const s=S, a=analyzeBuild(s), sl=a.sell, h=a.hold;
+  const best = (sl.irr??-Infinity) >= (h.irr??-Infinity) ? 'sell' : 'hold';
+  const ratio=a.value>0?a.totalCost/a.value:Infinity;
+  const vOver=h.incomeValue>0?a.value/h.incomeValue-1:Infinity;
+  const common=[
+    {n:'Cost-to-value', rule:'All-in cost under 75% of finished value', val:pct(ratio,0), st:grade(ratio,.75,.85,false)},
+    {n:'Contingency', rule:'10% of hard costs; never under 5%', val:pct(s.contPct/100,0), st:grade(s.contPct,10,5)},
+  ];
+  const sellC=[
+    {n:'Profit margin', rule:'20%+ on total cost; 15% minimum', val:pct(sl.margin), st:grade(sl.margin,.20,.15)},
+    {n:'Annualized return', rule:'30%+ IRR on a build; 18% minimum', val:pct(sl.irr), st:sl.irr==null?'fail':grade(sl.irr,.30,.18)},
+  ];
+  const holdC=[
+    {n:'Development spread', rule:'Yield on cost 1.5+ points over market cap', val:(h.spread>=0?'+':'−')+Math.abs(h.spread*10000).toFixed(0)+' bps', st:grade(h.spread,.015,.0075)},
+    {n:'Refi pays off the build loan', rule:'Cash left in under 25% of your equity', val:h.cashOut<0?$(-h.cashOut)+' short':$(Math.max(0,h.cashLeft))+' left in', st:h.cashOut<0?'fail':grade(a.equityIn>0?h.cashLeft/a.equityIn:0,.25,.75,false)},
+    {n:'Cash flow after refi', rule:'Positive every month, $150+/door strong', val:$(h.monthlyCF/a.units)+'/door', st:grade(h.monthlyCF/a.units,150,0)},
+    {n:'Value vs. income approach', rule:'Rental appraisals lean on NOI ÷ cap rate', val:isFinite(vOver)?(vOver>=0?'+':'−')+Math.abs(vOver*100).toFixed(0)+'%':'n/a', st:grade(vOver,.05,.15,false)},
+    {n:`IRR over the hold`, rule:'15%+ strong, 10% minimum', val:pct(h.irr), st:h.irr==null?'fail':grade(h.irr,.15,.10)},
+  ];
+  const counted=common.concat(best==='sell'?sellC:holdC);
+  const score=counted.reduce((t,c)=>t+(c.st==='pass'?2:c.st==='warn'?1:0),0)/(counted.length*2);
+  const fails=counted.filter(c=>c.st==='fail').map(c=>c.n.toLowerCase());
+  let v,word,why;
+  const bestLine = best==='sell'
+    ? `Best exit is to <b>sell</b>: ${$(sl.profit)} profit, ${pct(sl.margin)} on cost, ${pct(sl.irr)} annualized over ${a.T} months.`
+    : `Best exit is to <b>refi and hold</b>: ${$(h.cashOut)} back at refi, ${$(h.monthlyCF)}/mo cash flow, ${pct(h.irr)} IRR through year ${h.H}.`;
+  if(sl.profit<0 && (h.cf1<0 || h.irr==null || h.irr<.08)){v='bad';word="Don't break ground";why=`Selling loses ${$(-sl.profit)} and holding doesn't pay you. Cut the lot price or the build cost before this pencils.`;}
+  else if(score>=.75 && !fails.length){v='good';word='Build it';why=bestLine+' Lock in your builder bid and lender terms.';}
+  else if(score>=.5){v='warn';word='Tighten it up';why=bestLine+(fails.length?` It's weak on ${fails.join(', ')}.`:' A few numbers are thin.');}
+  else {v='bad';word="Don't break ground";why=bestLine+(fails.length?` It misses on ${fails.join(', ')}.`:'');}
+  const vEl=document.getElementById('bVerdict'); vEl.dataset.v=v;
+  document.getElementById('bStamp').textContent=word;
+  document.getElementById('bWhy').innerHTML=why;
+  const ml=maxLand(s);
+  document.getElementById('bOffer').innerHTML=
+    `<span>Max lot price for ${s.targetMargin}% margin: <strong>${ml==null?'not reachable':$(ml)}</strong></span>`+
+    `<span>Break-even sale price: <strong>${$(sl.breakeven)}</strong></span>`+
+    `<span>All-in: <strong>${$(a.totalCost/a.sqft)}/sf</strong></span>`;
+
+  const k=(l,val,sub,cls='')=>`<div class="kpi"><span class="k">${l}</span><span class="v ${cls}">${val}</span><span class="s">${sub}</span></div>`;
+  document.getElementById('bKpis').innerHTML=[
+    k('Total project cost',$(a.totalCost),`${$(a.totalCost/a.sqft)}/sf all-in`),
+    k('Your equity',$(a.equityIn),`Loan covers ${s.ltc}% of costs`),
+    k('Profit if sold',$(sl.profit),`${pct(sl.margin)} margin on cost`,sgn(sl.profit)),
+    k('IRR if sold',pct(sl.irr),`${a.T} months, land to sale`,sl.irr==null?'':sgn(sl.irr)),
+    k('Yield on cost',pct(h.yoc,2),`vs. ${s.marketCap}% market cap`),
+    k('Cash out at refi',$(h.cashOut),h.sizedBy==='DSCR'?'Loan capped by rent (DSCR)':`Loan at ${s.permLtv}% of value`,sgn(h.cashOut)),
+    k('Cash flow after refi',$(h.monthlyCF),'Per month, year one',sgn(h.monthlyCF)),
+    k('IRR if held',pct(h.irr),`Refi, hold ${h.H} yrs, then sell`,h.irr==null?'':sgn(h.irr)),
+  ].join('');
+
+  // exits table
+  const tag=x=>best===x?' <span class="chip pass">Best return</span>':'';
+  const rows=[
+    ['Exit',`Sell in month ${a.T}`,`Refi in month ${a.T}, hold ${h.H} yrs`],
+    ['Cash you put in',$(a.equityIn),$(a.equityIn)],
+    ['Cash back at exit',$(sl.cashBack),$(h.cashOut)+' at refi'],
+    ['Cash left in the deal','$0',h.cashLeft<=0?'$0 (all out)':$(h.cashLeft)],
+    ['Cash flow while held','None',$(h.cf1)+'/yr, year one'],
+    ['Loan at exit','Paid off',`${$(h.perm)} at ${s.permRate}% (${h.sizedBy==='DSCR'?'sized by DSCR':'sized by LTV'})`],
+    ['Total profit',$(sl.profit),`${$(h.profit)} incl. sale in yr ${h.H}`],
+    ['IRR',pct(sl.irr),pct(h.irr)],
+    ['Equity multiple',isFinite(sl.em)?sl.em.toFixed(2)+'×':'∞',isFinite(h.em)?h.em.toFixed(2)+'×':'∞'],
+    ['Main risk','Prices soften before you list','The appraisal or rates at refi'],
+  ];
+  document.getElementById('bExits').innerHTML=`<thead><tr><th></th><th class="${best==='sell'?'best':''}">Build to sell${tag('sell')}</th><th class="${best==='hold'?'best':''}">Refi & hold${tag('hold')}</th></tr></thead><tbody>`+
+    rows.map(r=>`<tr><td>${r[0]}</td><td class="${best==='sell'?'best':''}">${r[1]}</td><td class="${best==='hold'?'best':''}">${r[2]}</td></tr>`).join('')+'</tbody>';
+
+  // checks
+  const li=c=>`<li><span>${c.n}<span class="rule">${c.rule}</span></span><span class="val">${c.val}</span><span class="chip ${c.st}">${c.st}</span></li>`;
+  const sec=(t,arr,on)=>`<li class="chk-h">${t}${on?' <em>counts toward verdict</em>':''}</li>`+arr.map(li).join('');
+  document.getElementById('bChecks').innerHTML=sec('Construction',common,true)+sec('If you sell',sellC,best==='sell')+sec('If you refi & hold',holdC,best==='hold');
+
+  // budget
+  const cats=[
+    ['land','Land & closing',s.land+a.landClose,''],
+    ['hard','Vertical construction',a.vertical,`${a.sqft.toLocaleString('en-US')} sf × $${s.costPsf}`],
+    ['hard','Site work & utilities',s.siteWork,''],
+    ['cont','Contingency',a.cont,`${s.contPct}% of hard`],
+    ['soft','Plans & engineering',s.ae,''],
+    ['soft','Permits & impact fees',s.permits,''],
+    ['soft','Other soft costs',a.otherSoft,`${s.otherSoftPct}% of hard`],
+    ['fin','Loan points',a.fees,`${s.cPoints}%`],
+    ['fin','Construction interest',a.interestTot,`${s.cRate}%`],
+    ['carry','Carrying costs',a.carryTot,`${a.T} mo × ${$(s.carry)}`],
+  ];
+  const sums={}; cats.forEach(c=>sums[c[0]]=(sums[c[0]]||0)+c[2]);
+  const names={land:'Land',hard:'Hard costs',cont:'Contingency',soft:'Soft costs',fin:'Financing',carry:'Carrying'};
+  document.getElementById('bStack').innerHTML=`<div class="stack" role="img" aria-label="Budget by category">${Object.entries(sums).filter(([,v])=>v>0).map(([c,v])=>`<span style="flex:${v};background:var(--cat-${c})" title="${names[c]} ${$(v)}"></span>`).join('')}</div>`;
+  let bt=cats.filter(c=>c[2]>0).map(c=>`<tr><td><i class="sw" style="background:var(--cat-${c[0]})"></i>${c[1]}</td><td>${c[3]}</td><td>${$(c[2])}</td></tr>`).join('');
+  bt+=`<tr class="total"><td>Total project cost</td><td>${$(a.totalCost/a.sqft)}/sf</td><td>${$(a.totalCost)}</td></tr>`;
+  bt+=`<tr class="sub"><td>Construction loan at payoff</td><td>incl. interest</td><td>${$(a.loanPayoff)}</td></tr>`;
+  bt+=`<tr class="sub"><td>Your equity</td><td>${pct(a.totalCost>0?a.equityIn/a.totalCost:0,0)} of cost</td><td>${$(a.equityIn)}</td></tr>`;
+  document.getElementById('bBudget').innerHTML=bt;
+
+  // sensitivity
+  const st=[-.10,-.05,0,.05,.10];
+  let sh=`<thead><tr><th></th>${st.map(p=>`<th>${$k(s.salePrice*(1+p))}<br>${p===0?'your value':(p>0?'+':'−')+Math.abs(p*100)+'%'}</th>`).join('')}</tr></thead><tbody>`;
+  st.forEach(cp=>{
+    sh+=`<tr><th class="rowh">$${(s.costPsf*(1+cp)).toFixed(0)}/sf<br>${cp===0?'your bid':(cp>0?'+':'−')+Math.abs(cp*100)+'%'}</th>`;
+    st.forEach(pp=>{const p=analyzeBuild(Object.assign({},s,{costPsf:s.costPsf*(1+cp),salePrice:s.salePrice*(1+pp)})).sell.profit;
+      sh+=`<td class="${p>=0?'p':'n'}${cp===0&&pp===0?' base':''}">${$k(p)}</td>`;});
+    sh+='</tr>';
+  });
+  document.getElementById('bSens').innerHTML=sh+'</tbody>';
+
+  // draws
+  document.getElementById('bDraws').innerHTML=`<thead><tr><th>Month</th><th>Spend</th><th>Your equity</th><th>Loan draw</th><th>Interest</th><th>Carrying</th><th>Loan balance</th></tr></thead><tbody>`+
+    a.draws.map(d=>`<tr class="${d.m>a.B?'exitm':''}"><td>${d.m===0?'Close':d.m}${d.m>a.B?' · '+(best==='sell'?'selling':'lease-up'):''}</td><td>${$(d.spend)}</td><td>${$(d.eqPart+(d.m===0?a.fees:0))}</td><td>${$(d.draw)}</td><td>${$(d.interest)}</td><td>${$(d.carry)}</td><td>${$(d.bal)}</td></tr>`).join('')+'</tbody>';
+}
+
+/* ---------- views ---------- */
+function route(){
+  const view=location.hash==='#build'?'build':'rental';
+  document.getElementById('view-rental').hidden=view!=='rental';
+  document.getElementById('view-build').hidden=view!=='build';
+  document.querySelectorAll('.tabs a').forEach(t=>t.setAttribute('aria-current',t.getAttribute('href')==='#'+view?'page':'false'));
+  document.querySelectorAll('[data-view]').forEach(b=>b.hidden=b.dataset.view!==view);
+}
+window.addEventListener('hashchange',route);
+
+buildForm(); fillForm(); render(); note.hidden=!isEx; route();
+window.__analyzeBuild=analyzeBuild; window.__BP=BP;
 })();
 </script>
 </body>

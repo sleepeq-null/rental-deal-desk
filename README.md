@@ -31,8 +31,9 @@ Open it at https://sleepeq-null.github.io/rental-deal-desk/#str
 
 Open it at https://sleepeq-null.github.io/rental-deal-desk/#comps
 
-Enter an address and pull:
+Enter an address (suggestions appear as you type) and pull:
 
+- **Area market, no key needed**: typical rent and home value for the ZIP code with one-year trends, rent ÷ value (the 1% rule) and price-to-rent, from [Zillow Research](https://www.zillow.com/research/data/) public data
 - **Rent comps and rent estimate** from [RentCast](https://www.rentcast.io/api) (free key, 50 lookups a month)
 - **Sale comps and value estimate** from RentCast
 - **Airbnb comps**: nightly rate, occupancy and revenue for similar nearby listings from [AirROI](https://www.airroi.com/api) (paid per lookup)
@@ -40,6 +41,10 @@ Enter an address and pull:
 - **Map** of the property, comps, and a 1-mile ring colored by the crime grade
 
 One click sends a comp result into the other calculators (rent, purchase price, after-repair value, finished value, nightly rate and occupancy). API keys are saved in your browser only and sent only to their own service. Crime data is city-wide or county-wide, not block by block.
+
+## Updating the area market data
+
+The area market data lives in `data/zip-market.json`. Zillow publishes new files mid-month; to refresh, run `node scripts/build-market-data.mjs` and commit the updated file.
 
 ## Ground-up build
 

@@ -205,6 +205,8 @@ header.top{margin-bottom:0}
 .est{display:flex;flex-direction:column;gap:2px;margin-bottom:10px}
 .est .k{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
 .est .v{font-family:var(--f-mono);font-size:24px;font-weight:500}
+.est .v.pos{color:var(--good)} .est .v.neg{color:var(--bad)}
+.est .pos,.est .neg{font-size:12.5px}
 .est-row{display:flex;flex-wrap:wrap;gap:8px 32px}
 .use-row{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 12px}
 .addr-wrap{position:relative}
@@ -385,11 +387,16 @@ header.top{margin-bottom:0}
       </form>
     </aside>
     <main class="results">
-      <p class="cstatus" id="cGlobal">Enter an address and pull data to see rent comps, sale comps, Airbnb comps and an area crime grade.</p>
+      <p class="cstatus" id="cGlobal">Enter an address and pull data to see the area market, an area crime grade, and rent, sale and Airbnb comps.</p>
       <section class="panel">
         <h2>Area crime grade</h2>
         <p class="sub">Violent and property crime per 100,000 residents from FBI data, graded against the national rate.</p>
         <div id="cCrime"></div>
+      </section>
+      <section class="panel">
+        <h2>Area market</h2>
+        <p class="sub">Typical rent and home value for the ZIP code from <a href="https://www.zillow.com/research/data/" target="_blank" rel="noopener">Zillow Research</a> public data, refreshed monthly. No key needed.</p>
+        <div id="cMarket"></div>
       </section>
       <section class="panel" id="cMap" hidden>
         <h2>Map</h2>
@@ -414,7 +421,7 @@ header.top{margin-bottom:0}
         <h2>Airbnb comps</h2>
         <div id="cStr"></div>
       </section>
-      <p class="foot">Live lookups run on the GitHub site version of this tool. Comps are estimates from third-party listing data; confirm with a local agent or property manager before you rely on them.</p>
+      <p class="foot">Area market data works everywhere; comps, crime data and the map run on the GitHub site version of this tool. Comps are estimates from third-party listing data; confirm with a local agent or property manager before you rely on them.</p>
     </main>
   </div>
 
@@ -1472,7 +1479,7 @@ async function geocode(q){
   const f=j.features&&j.features[0]; if(!f) throw new Error('Couldn’t find that address. Add the city and state.');
   const p=f.properties||{}, [lng,lat]=f.geometry.coordinates;
   if(p.countrycode&&p.countrycode!=='US') throw new Error('Only US addresses are supported.');
-  return {lat,lng,state:STATES[(p.state||'').toLowerCase()]||null,city:p.city||p.town||p.county||'',label:[p.housenumber,p.street,p.city,p.state].filter(Boolean).join(' ')};
+  return {lat,lng,state:STATES[(p.state||'').toLowerCase()]||null,city:p.city||p.town||p.county||'',label:[p.housenumber,p.street,p.city,p.state].filter(Boolean).join(' '),postcode:(p.postcode||'').slice(0,5)||null};
 }
 
 /* ---------- address suggestions (Photon) ---------- */
@@ -1508,14 +1515,14 @@ async function fetchSugg(q){
     const city=pr.city||pr.town||pr.village||pr.district||pr.county||'', st=abbr(pr.state);
     const line1=[num,street].filter(Boolean).join(' ');
     const rest=[city,[st,pr.postcode].filter(Boolean).join(' ')].filter(Boolean).join(', ');
-    return {line1,rest,full:[line1,rest].filter(Boolean).join(', '),lat,lng,state:STATES[(pr.state||'').toLowerCase()]||null,city};
+    return {postcode:(pr.postcode||'').slice(0,5)||null,line1,rest,full:[line1,rest].filter(Boolean).join(', '),lat,lng,state:STATES[(pr.state||'').toLowerCase()]||null,city};
   }).filter(s=>s.line1&&!seen.has(s.full)&&seen.add(s.full)).slice(0,6);
   active=-1; drawSugg();
 }
 function choose(i){
   const s=sugg[i]; if(!s) return;
   addrIn.value=s.full; subj.address=s.full; store.set(SUBJ,subj);
-  picked={lat:s.lat,lng:s.lng,state:s.state,city:s.city,label:s.full};
+  picked={lat:s.lat,lng:s.lng,state:s.state,city:s.city,postcode:s.postcode,label:s.full};
   hideSugg();
 }
 addrIn.addEventListener('input',()=>{
@@ -1537,7 +1544,7 @@ addrIn.addEventListener('blur',()=>setTimeout(hideSugg,120));
 const miles=(a,b,c,d)=>{const R=3958.8,t=x=>x*Math.PI/180,dl=t(c-a),dn=t(d-b);const h=Math.sin(dl/2)**2+Math.cos(t(a))*Math.cos(t(c))*Math.sin(dn/2)**2;return 2*R*Math.asin(Math.sqrt(h))};
 
 /* ---------- section state ---------- */
-const state={geo:null,rent:null,value:null,str:null,crime:null};
+const state={geo:null,rent:null,value:null,str:null,crime:null,market:null};
 function setStatus(id,html,kind=''){const n=el(id); n.innerHTML=html; n.className='cstatus '+kind;}
 
 async function pull(){
@@ -1545,15 +1552,15 @@ async function pull(){
   if(!addr){setStatus('cGlobal','Enter the property address first, with city and state.','err');return;}
   blocked=false;
   setStatus('cGlobal','Looking up the address…','load');
-  ['rent','value','str','crime'].forEach(s=>{state[s]=null;});
+  ['rent','value','str','crime','market'].forEach(s=>{state[s]=null;});
   renderAll();
   try{state.geo=(picked&&picked.label===addr)?picked:await geocode(addr);}
   catch(e){
-    if(blocked){showBlocked();return;}
+    if(blocked){await pullMarket(addr); showBlocked(); return;}
     state.geo=null; setStatus('cGlobal',esc(e.message),'err');
   }
   if(state.geo) setStatus('cGlobal',`Found <b>${esc(state.geo.label||addr)}</b>. Pulling data…`,'load');
-  await Promise.allSettled([pullRentcast(addr),pullCrime(),pullSTR()]);
+  await Promise.allSettled([pullMarket(addr),pullRentcast(addr),pullCrime(),pullSTR()]);
   if(blocked){showBlocked();return;}
   setStatus('cGlobal',state.geo?`Showing data for <b>${esc(state.geo.label||addr)}</b>. Pulled ${new Date().toLocaleString()}.`:'Some lookups need a matched address.','');
   renderAll();
@@ -1563,6 +1570,30 @@ function showBlocked(){
   renderAll();
 }
 
+let marketData=null;
+async function loadMarket(){
+  if(marketData) return marketData;
+  let r; try{r=await fetch('data/zip-market.json');}catch(e){throw new Error('Couldn\u2019t load the area data file.');}
+  if(!r.ok) throw new Error('Couldn\u2019t load the area data file.');
+  return marketData=await r.json();
+}
+function zipFrom(addr){
+  if(state.geo&&state.geo.postcode) return state.geo.postcode;
+  const m=addr.match(/\b\d{5}\b/g); if(!m) return null;
+  const z=m[m.length-1];
+  return (m.length===1&&addr.trim().startsWith(z))?null:z;
+}
+async function pullMarket(addr){
+  const zip=zipFrom(addr);
+  if(!zip){state.market={error:'Add the ZIP code to the address, or pick a suggestion, to see area data.'};renderAll();return;}
+  state.market={loading:true}; renderAll();
+  try{
+    const d=await loadMarket(), z=d.zips[zip];
+    if(!z) state.market={error:`Zillow has no data for ZIP ${zip}.`};
+    else{const [rent,rentYA,value,valueYA,city,st,metro,county]=z; state.market={zip,rent,rentYA,value,valueYA,city,st,metro,county,rentAsOf:d.rentAsOf,valueAsOf:d.valueAsOf};}
+  }catch(e){state.market={error:e.message};}
+  renderAll();
+}
 async function pullRentcast(addr){
   if(!keys.rentcast){state.rent=state.value={need:true};renderAll();return;}
   state.rent=state.value={loading:true}; renderAll();
@@ -1645,6 +1676,26 @@ function renderAll(){
       ${rowC('Violent crime',c.violent,g.violent,g.rv)}${rowC('Property crime',c.property,g.property,g.rp)}</tbody></table></div>
       <p class="axis-note">A: under half the U.S. rate · B: under 0.8× · C: about average · D: up to 1.6× · F: worse. This is city-wide (or county-wide) data from the agency that polices the address; blocks within a city vary a lot, so drive the street at night before you buy.</p>`;
   }
+  // area market
+  const mk=state.market, mn=el('cMarket');
+  if(!mk) mn.innerHTML='<p class="empty">Pull data for an address to see typical rent and home value for its ZIP code.</p>';
+  else if(mk.loading) mn.innerHTML=loading;
+  else if(mk.error) mn.innerHTML=err(mk.error);
+  else{
+    const yoy=(a,b)=>a!=null&&b?(a/b-1)*100:null;
+    const tr=t=>t==null?'<span class="muted">No year-ago figure</span>':`<span class="${t>=0?'pos':'neg'}">${t>=0?'\u2191':'\u2193'} ${Math.abs(t).toFixed(1)}% in a year</span>`;
+    const ratio=mk.rent&&mk.value?mk.rent/mk.value:null, ptr=mk.rent&&mk.value?mk.value/(mk.rent*12):null;
+    const rc=ratio==null?'':ratio>=.01?'pos':ratio>=.007?'':'neg';
+    const mon=d=>d?new Date(d+'T12:00:00').toLocaleDateString('en-US',{month:'long',year:'numeric'}):'';
+    mn.innerHTML=`<div class="est-row">
+      <div class="est"><span class="k">Typical rent</span><span class="v">${mk.rent?$(mk.rent)+'/mo':'\u2014'}</span>${mk.rent?tr(yoy(mk.rent,mk.rentYA)):'<span class="muted">Zillow doesn\u2019t track rent here</span>'}</div>
+      <div class="est"><span class="k">Typical home value</span><span class="v">${$(mk.value)}</span>${tr(yoy(mk.value,mk.valueYA))}</div>
+      <div class="est"><span class="k">Rent \u00f7 value</span><span class="v ${rc}">${ratio!=null?(ratio*100).toFixed(2)+'%':'\u2014'}</span><span class="muted">The 1% rule wants 1.00%+</span></div>
+      <div class="est"><span class="k">Price-to-rent</span><span class="v">${ptr!=null?ptr.toFixed(1)+'\u00d7':'\u2014'}</span><span class="muted">Under 15\u00d7 favors buying to rent</span></div>
+    </div>
+    <p class="muted">ZIP ${esc(mk.zip)} \u00b7 ${esc(mk.city)}, ${esc(mk.st)} \u00b7 ${esc(mk.metro||mk.county)}. Rent index as of ${mon(mk.rentAsOf)}, home value index as of ${mon(mk.valueAsOf)}. "Typical" is the middle of the local market across all bedroom counts, so adjust for the property you\u2019re looking at.</p>
+    ${mk.rent?`<div class="use-row">${useBtn(`Use ${$(mk.rent)} in Buy a rental`,'mrent')}${useBtn('Use as long-term rent in Airbnb','mltr')}</div>`:''}`;
+  }
   // rent comps
   const r=state.rent, rn=el('cRent');
   if(!r) rn.innerHTML='<p class="empty">Long-term rent estimate and nearby rental listings.</p>';
@@ -1717,6 +1768,9 @@ document.addEventListener('click',e=>{
   if(u==='price'&&v&&v.price){window.__applyRental&&window.__applyRental({price:Math.round(v.price)});go('rental');}
   if(u==='arv'&&v&&v.price){window.__applyRental&&window.__applyRental({arv:Math.round(v.price)});go('rental');}
   if(u==='build'&&v&&v.price){window.__applyBuild&&window.__applyBuild({salePrice:Math.round(v.price)});go('build');}
+  const mk=state.market;
+  if(u==='mrent'&&mk&&mk.rent){window.__applyRental&&window.__applyRental({rent:Math.round(mk.rent)});go('rental');}
+  if(u==='mltr'&&mk&&mk.rent){window.__applySTR&&window.__applySTR({ltrRent:Math.round(mk.rent)});go('str');}
   if(u==='str'&&state.strMed){const p={}; if(state.strMed.adr) p.adr=Math.round(state.strMed.adr); if(state.strMed.occ!=null) p.occ=Math.round(state.strMed.occ*100); window.__applySTR&&window.__applySTR(p);go('str');}
 });
 

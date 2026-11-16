@@ -1691,7 +1691,7 @@ function renderAll(){
       <div class="est"><span class="k">Typical rent</span><span class="v">${mk.rent?$(mk.rent)+'/mo':'\u2014'}</span>${mk.rent?tr(yoy(mk.rent,mk.rentYA)):'<span class="muted">Zillow doesn\u2019t track rent here</span>'}</div>
       <div class="est"><span class="k">Typical home value</span><span class="v">${$(mk.value)}</span>${tr(yoy(mk.value,mk.valueYA))}</div>
       <div class="est"><span class="k">Rent \u00f7 value</span><span class="v ${rc}">${ratio!=null?(ratio*100).toFixed(2)+'%':'\u2014'}</span><span class="muted">The 1% rule wants 1.00%+</span></div>
-      <div class="est"><span class="k">Price-to-rent</span><span class="v">${ptr!=null?ptr.toFixed(1)+'\u00d7':'\u2014'}</span><span class="muted">Under 15\u00d7 favors buying to rent</span></div>
+      <div class="est"><span class="k">Price-to-rent</span><span class="v">${ptr!=null?ptr.toFixed(1)+'\u00d7':'\u2014'}</span><span class="muted">Investors want under 10\u00d7; 8.3\u00d7 matches the 1% rule</span></div>
     </div>
     <p class="muted">ZIP ${esc(mk.zip)} \u00b7 ${esc(mk.city)}, ${esc(mk.st)} \u00b7 ${esc(mk.metro||mk.county)}. Rent index as of ${mon(mk.rentAsOf)}, home value index as of ${mon(mk.valueAsOf)}. "Typical" is the middle of the local market across all bedroom counts, so adjust for the property you\u2019re looking at.</p>
     ${mk.rent?`<div class="use-row">${useBtn(`Use ${$(mk.rent)} in Buy a rental`,'mrent')}${useBtn('Use as long-term rent in Airbnb','mltr')}</div>`:''}`;

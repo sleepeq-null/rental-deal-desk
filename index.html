@@ -1495,9 +1495,15 @@ async function fetchSugg(q){
   let j; try{const r=await fetch('https://photon.komoot.io/api/?'+p,{signal:sugCtrl.signal}); if(!r.ok) return; j=await r.json();}catch(e){return;}
   if(addrIn.value.trim()!==q) return;
   const seen=new Set();
-  sugg=(j.features||[]).filter(f=>f.properties&&f.properties.countrycode==='US').map(f=>{
+  const NOT_ROAD=/^(path|footway|cycleway|track|bridleway|steps|pedestrian|service|proposed|construction)$/;
+  sugg=(j.features||[]).filter(f=>{const pr=f.properties; if(!pr||pr.countrycode!=='US') return false;
+    if(pr.osm_key==='highway'&&NOT_ROAD.test(pr.osm_value||'')) return false;
+    if(typedNum&&pr.housenumber&&pr.housenumber.toLowerCase()!==typedNum.toLowerCase()) return false;
+    return true;
+  }).sort((a,b)=>(b.properties.housenumber?1:0)-(a.properties.housenumber?1:0)).map(f=>{
     const pr=f.properties, [lng,lat]=f.geometry.coordinates;
-    const num=pr.housenumber||(pr.street?typedNum:'')||'', street=pr.street||pr.name||'';
+    const isStreet=!pr.housenumber&&(pr.osm_key==='highway'||pr.type==='street');
+    const num=pr.housenumber||(isStreet?typedNum:'')||'', street=pr.housenumber?(pr.street||pr.name||''):(pr.street||pr.name||'');
     const city=pr.city||pr.town||pr.village||pr.district||pr.county||'', st=abbr(pr.state);
     const line1=[num,street].filter(Boolean).join(' ');
     const rest=[city,[st,pr.postcode].filter(Boolean).join(' ')].filter(Boolean).join(', ');

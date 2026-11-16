@@ -44,7 +44,7 @@ One click sends a comp result into the other calculators (rent, purchase price, 
 
 ## Updating the area market data
 
-The area market data lives in `data/zip-market.json`. Zillow publishes new files mid-month; to refresh, run `node scripts/build-market-data.mjs` and commit the updated file.
+The area market data lives in `data/zip-market.json`. It is built by `scripts/build-market-data.mjs` from Zillow's ZORI and ZHVI files. A GitHub Action (`.github/workflows/refresh-market-data.yml`) rebuilds it on the 20th of every month, after Zillow's mid-month release, and commits it only if the numbers changed. You can also run it any time from the repo's Actions tab.
 
 ## Ground-up build
 

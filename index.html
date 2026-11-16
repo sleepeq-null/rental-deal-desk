@@ -1653,10 +1653,10 @@ document.addEventListener('click',e=>{
 });
 
 /* ---------- map (Leaflet, loaded on demand) ---------- */
-let L=null, map=null, layer=null, leafletFailed=false;
+let L=null, map=null, layer=null, leafletFailed=false, leafletP=null, mapSeq=0;
 function loadLeaflet(){
   if(window.L) return Promise.resolve(window.L);
-  return new Promise((ok,no)=>{
+  return leafletP=leafletP||new Promise((ok,no)=>{
     const css=document.createElement('link'); css.rel='stylesheet'; css.href='https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css'; document.head.appendChild(css);
     const s=document.createElement('script'); s.src='https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js'; s.onload=()=>ok(window.L); s.onerror=no; document.head.appendChild(s);
   });
@@ -1665,7 +1665,9 @@ async function renderMap(){
   const box=el('cMap'), g=state.geo;
   if(!g||blocked||leafletFailed){box.hidden=true; return;}
   box.hidden=false;
+  const seq=++mapSeq;
   try{L=await loadLeaflet();}catch(e){leafletFailed=true; box.hidden=true; return;}
+  if(seq!==mapSeq) return;
   if(!map){
     map=L.map('cMapInner',{scrollWheelZoom:false}).setView([g.lat,g.lng],14);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap contributors'}).addTo(map);
